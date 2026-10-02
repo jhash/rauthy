@@ -58,6 +58,7 @@ async fn create_client_with_uri(id: &str, client_uri: &str) -> Result<(), Box<dy
             claims_at_root: false,
             allowed_resources: None,
             default_aud: None,
+            allowed_providers: None,
             scim: None,
         })
         .send()
