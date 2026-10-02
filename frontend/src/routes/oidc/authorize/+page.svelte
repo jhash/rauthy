@@ -220,6 +220,11 @@
         password = '';
     }
 
+    function registerHref(): string {
+        const authorize = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+        return `/auth/v1/users/register?redirect_uri=${encodeURIComponent(authorize)}`;
+    }
+
     async function onRefresh() {
         if (!clientId) {
             console.error('clientId is undefined');
@@ -677,19 +682,9 @@
                     </Form>
 
                     {#if isRegOpen && !showResetRequest && !tooManyRequests && !isAtproto}
-                        {#if clientUri}
-                            <a
-                                class="reg"
-                                href="/auth/v1/users/register?redirect_uri={clientUri}"
-                                target="_blank"
-                            >
-                                {t.authorize.signUp}
-                            </a>
-                        {:else}
-                            <a class="reg" href="/auth/v1/users/register" target="_blank">
-                                {t.authorize.signUp}
-                            </a>
-                        {/if}
+                        <a class="reg" href={registerHref()}>
+                            {t.authorize.signUp}
+                        </a>
                     {/if}
                 {/if}
 

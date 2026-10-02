@@ -41,6 +41,7 @@ pub struct WellKnown {
     pub service_documentation: &'static str,
     pub ui_locales_supported: Vec<&'static str>,
     pub claims_parameter_supported: bool,
+    pub prompt_values_supported: Vec<&'static str>,
     /// SEP-991 / draft-jonesmichael-oauth-cimd. Signals that this AS accepts
     /// clients identified by a Client ID Metadata Document URL (Rauthy already
     /// implements this via `ephemeral_from_url`). ChatGPT's custom-connector UI
@@ -103,6 +104,10 @@ impl WellKnown {
             .enable
             .then_some(format!("{issuer}clients_dyn"));
         let end_session_endpoint = format!("{issuer}oidc/logout");
+        let mut prompt_values_supported = vec!["none", "login", "consent"];
+        if RauthyConfig::get().vars.user_registration.enable {
+            prompt_values_supported.push("create");
+        }
         let jwks_uri = format!("{issuer}oidc/certs");
 
         WellKnown {
@@ -117,6 +122,7 @@ impl WellKnown {
             userinfo_endpoint,
             end_session_endpoint,
             registration_endpoint,
+            prompt_values_supported,
             jwks_uri,
             grant_types_supported: [
                 GrantType::AuthorizationCode.as_str(),

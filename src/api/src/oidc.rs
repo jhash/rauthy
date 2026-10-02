@@ -2,7 +2,7 @@ use crate::{ReqPrincipal, map_auth_step};
 use actix_web::cookie::time::OffsetDateTime;
 use actix_web::http::header::{
     ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS,
-    CONTENT_TYPE, HeaderName, HeaderValue,
+    CONTENT_TYPE, HeaderName, HeaderValue, LOCATION,
 };
 use actix_web::http::{StatusCode, header};
 use actix_web::web::{Form, Json, Query};
@@ -20,7 +20,7 @@ use rauthy_common::compression::{compress_br_dyn, compress_gzip};
 use rauthy_common::constants::{
     APPLICATION_JSON, COOKIE_MFA, HEADER_HTML, HEADER_RETRY_NOT_BEFORE, PROVIDER_ATPROTO,
 };
-use rauthy_common::utils::real_ip_from_req;
+use rauthy_common::utils::{real_ip_from_req, url_encode};
 use rauthy_data::api_cookie::ApiCookie;
 use rauthy_data::entity::api_keys::{AccessGroup, AccessRights};
 use rauthy_data::entity::auth_providers::{
@@ -106,6 +106,12 @@ pub async fn get_authorize(
         }
     };
     let theme_ts = ThemeCssFull::find_theme_ts(client.id.clone()).await?;
+
+    if params.is_prompt("create") && RauthyConfig::get().vars.user_registration.enable {
+        return Ok(HttpResponse::Found()
+            .insert_header((LOCATION, register_location(req.query_string())))
+            .finish());
+    }
 
     // check prompt and max_age to possibly force a new session
     let force_new_session = if params
@@ -244,6 +250,19 @@ pub async fn get_authorize(
             browser_id,
         )
     }
+}
+
+fn register_location(authorize_query: &str) -> String {
+    let query = authorize_query
+        .split('&')
+        .filter(|kv| !kv.starts_with("prompt="))
+        .collect::<Vec<_>>()
+        .join("&");
+    let authorize = format!("{}oidc/authorize?{query}", RauthyConfig::get().issuer);
+    format!(
+        "/auth/v1/users/register?redirect_uri={}",
+        url_encode(&authorize)
+    )
 }
 
 fn build_authorize_resp(

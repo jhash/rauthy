@@ -424,6 +424,11 @@ pub async fn post_users_register(
 
 // extracted to be usable from `post_dev_only_endpoints()`
 #[inline(always)]
+fn is_own_authorize_url(uri: &str) -> bool {
+    let authorize = format!("{}oidc/authorize?", RauthyConfig::get().issuer);
+    uri.starts_with(&authorize)
+}
+
 pub async fn post_users_register_handle(
     req: HttpRequest,
     payload: NewUserRegistrationRequest,
@@ -470,6 +475,7 @@ pub async fn post_users_register_handle(
 
     if let Some(redirect_uri) = &payload.redirect_uri
         && !reg.allow_open_redirect
+        && !is_own_authorize_url(redirect_uri)
     {
         let mut allow = false;
         for uri in Client::find_all_client_uris().await? {
