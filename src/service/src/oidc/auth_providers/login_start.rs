@@ -29,6 +29,7 @@ pub async fn login_start<'a>(
     }
 
     let client = Client::find(payload.client_id).await?;
+    client.validate_provider_allowed(&provider.id)?;
 
     let slf = AuthProviderCallback {
         callback_id: secure_random_alnum(32),

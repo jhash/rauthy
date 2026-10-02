@@ -4,7 +4,8 @@
     import IconCheck from '$icons/IconCheck.svelte';
     import { useI18n } from '$state/i18n.svelte';
     import { useI18nAdmin } from '$state/i18n_admin.svelte';
-    import { fetchGet, fetchPut } from '$api/fetch';
+    import { fetchGet, fetchPost, fetchPut } from '$api/fetch';
+    import type { ProviderResponse } from '$api/types/auth_provider.ts';
     import Form from '$lib5/form/Form.svelte';
     import LabeledValue from '$lib5/LabeledValue.svelte';
     import {
@@ -71,6 +72,30 @@
         client.allowed_resources ? Array.from(client.allowed_resources) : [],
     );
     let defaultAud: string[] = $state(client.default_aud ? Array.from(client.default_aud) : []);
+    let providers: ProviderResponse[] = $state([]);
+    let providerAllowed: Record<string, boolean> = $state(allowedProvidersOf(client));
+
+    $effect(() => {
+        fetchPost<ProviderResponse[]>('/auth/v1/providers').then(res => {
+            if (res.body) {
+                const allowed = untrack(() => providerAllowed);
+                providerAllowed = Object.fromEntries(res.body.map(p => [p.id, !!allowed[p.id]]));
+                providers = res.body;
+            }
+        });
+    });
+
+    function allowedProviders(): string[] | undefined {
+        if (providers.length === 0) {
+            return client.allowed_providers;
+        }
+        const ids = providers.filter(p => providerAllowed[p.id]).map(p => p.id);
+        return ids.length > 0 ? ids : undefined;
+    }
+
+    function allowedProvidersOf(c: ClientResponse): Record<string, boolean> {
+        return Object.fromEntries((c.allowed_providers || []).map(id => [id, true]));
+    }
 
     let scimEnabled = $state(client.scim !== undefined);
     let scim: ScimClientRequestResponse = $state({
@@ -140,6 +165,12 @@
             origins = client.allowed_origins ? Array.from(client.allowed_origins) : [];
             allowedResources = client.allowed_resources ? Array.from(client.allowed_resources) : [];
             defaultAud = client.default_aud ? Array.from(client.default_aud) : [];
+            providerAllowed = Object.fromEntries(
+                Object.keys(providerAllowed).map(id => [
+                    id,
+                    !!client.allowed_providers?.includes(id),
+                ]),
+            );
             redirectURIs = Array.from(client.redirect_uris);
             postLogoutRedirectURIs = client.post_logout_redirect_uris
                 ? Array.from(client.post_logout_redirect_uris)
@@ -239,6 +270,7 @@
             claims_at_root: claimsAtRoot,
             allowed_resources: allowedResources.length > 0 ? allowedResources : undefined,
             default_aud: defaultAud.length > 0 ? defaultAud : undefined,
+            allowed_providers: allowedProviders(),
         };
 
         if (flows.authorizationCode) {
@@ -427,6 +459,19 @@
             errMsg={ta.validation.uri}
             pattern={PATTERN_RESOURCE}
         />
+
+        {#if providers.length > 0}
+            <p class="mb-0"><b>{ta.clients.allowedProviders}</b></p>
+            <p class="desc">{ta.clients.descAllowedProviders}</p>
+            {#each providers as provider (provider.id)}
+                <InputCheckbox
+                    ariaLabel={provider.name}
+                    bind:checked={providerAllowed[provider.id]}
+                >
+                    {provider.name}
+                </InputCheckbox>
+            {/each}
+        {/if}
 
         <div style:height=".5rem"></div>
         <p class="mb-0"><b>Scopes</b></p>

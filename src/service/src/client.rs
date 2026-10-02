@@ -66,6 +66,10 @@ pub async fn update_client(
         .default_aud
         .map(|a| a.join(","))
         .filter(|a| !a.is_empty());
+    client.allowed_providers = client_req
+        .allowed_providers
+        .map(|p| p.join(","))
+        .filter(|p| !p.is_empty());
 
     client.save().await?;
 

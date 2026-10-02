@@ -44,8 +44,8 @@ SET name = $1, enabled = $2, confidential = $3, secret = $4, secret_kid = $5, re
     id_token_alg = $11, auth_code_lifetime = $12, access_token_lifetime = $13, scopes = $14,
     default_scopes = $15, challenge = $16, force_mfa= $17, client_uri = $18, contacts = $19,
     backchannel_logout_uri = $20, restrict_group_prefix = $21, claims = $22,
-    claims_at_root = $23, allowed_resources = $24, default_aud = $25
-WHERE id = $26"#;
+    claims_at_root = $23, allowed_resources = $24, default_aud = $25, allowed_providers = $26
+WHERE id = $27"#;
 
 /**
 # OIDC Client
@@ -95,6 +95,7 @@ pub struct Client {
     pub allowed_resources: Option<String>,
     /// Audiences always added to this client's tokens, independent of any request (CSV).
     pub default_aud: Option<String>,
+    pub allowed_providers: Option<String>,
 }
 
 impl Debug for Client {
@@ -106,7 +107,7 @@ impl Debug for Client {
         flows_enabled: {}, access_token_alg: {}, id_token_alg: {}, auth_code_lifetime: {}, \
         access_token_lifetime: {}, scopes: {}, default_scopes: {}, challenge: {:?}, force_mfa: {}, \
         client_uri: {:?}, contacts: {:?}, backchannel_logout_uri: {:?}, restrict_group_prefix: {:?}, \
-        claims: {:?}, claims_at_root: {}, allowed_resources: {:?}, default_aud: {:?} \
+        claims: {:?}, claims_at_root: {}, allowed_resources: {:?}, default_aud: {:?}, allowed_providers: {:?} \
         }}",
             self.id,
             self.name,
@@ -132,6 +133,7 @@ impl Debug for Client {
             self.claims_at_root,
             self.allowed_resources,
             self.default_aud,
+            self.allowed_providers,
         )
     }
 }
@@ -533,6 +535,7 @@ VALUES ($1, $2, $3, $4)"#;
             .filter(|uri| !uri.is_empty());
         let allowed_resources = self.allowed_resources.clone().filter(|r| !r.is_empty());
         let default_aud = self.default_aud.clone().filter(|a| !a.is_empty());
+        let allowed_providers = self.allowed_providers.clone().filter(|p| !p.is_empty());
 
         txn.push((
             SQL_SAVE,
@@ -562,6 +565,7 @@ VALUES ($1, $2, $3, $4)"#;
                 self.claims_at_root,
                 allowed_resources,
                 default_aud,
+                allowed_providers,
                 &self.id
             ),
         ));
@@ -583,6 +587,7 @@ VALUES ($1, $2, $3, $4)"#;
             .filter(|uri| !uri.is_empty());
         let allowed_resources = self.allowed_resources.clone().filter(|r| !r.is_empty());
         let default_aud = self.default_aud.clone().filter(|a| !a.is_empty());
+        let allowed_providers = self.allowed_providers.clone().filter(|p| !p.is_empty());
 
         DB::pg_txn_append(
             txn,
@@ -613,6 +618,7 @@ VALUES ($1, $2, $3, $4)"#;
                 &self.claims_at_root,
                 &allowed_resources,
                 &default_aud,
+                &allowed_providers,
                 &self.id,
             ],
         )
@@ -641,6 +647,7 @@ VALUES ($1, $2, $3, $4)"#;
             .filter(|uri| !uri.is_empty());
         let allowed_resources = self.allowed_resources.clone().filter(|r| !r.is_empty());
         let default_aud = self.default_aud.clone().filter(|a| !a.is_empty());
+        let allowed_providers = self.allowed_providers.clone().filter(|p| !p.is_empty());
 
         if is_hiqlite() {
             DB::hql()
@@ -672,6 +679,7 @@ VALUES ($1, $2, $3, $4)"#;
                         self.claims_at_root,
                         allowed_resources,
                         default_aud,
+                        allowed_providers,
                         self.id.clone()
                     ),
                 )
@@ -705,6 +713,7 @@ VALUES ($1, $2, $3, $4)"#;
                     &self.claims_at_root,
                     &allowed_resources,
                     &default_aud,
+                    &allowed_providers,
                     &self.id,
                 ],
             )
@@ -960,6 +969,35 @@ impl Client {
     }
 
     #[inline]
+    pub fn get_allowed_providers(&self) -> Option<Vec<String>> {
+        let providers = self.allowed_providers.as_deref()?;
+        Some(
+            providers
+                .split(',')
+                .filter(|p| !p.is_empty())
+                .map(String::from)
+                .collect(),
+        )
+    }
+
+    pub fn allows_provider(&self, provider_id: &str) -> bool {
+        match self.allowed_providers.as_deref() {
+            None | Some("") => true,
+            Some(providers) => providers.split(',').any(|p| p == provider_id),
+        }
+    }
+
+    pub fn validate_provider_allowed(&self, provider_id: &str) -> Result<(), ErrorResponse> {
+        if self.allows_provider(provider_id) {
+            Ok(())
+        } else {
+            Err(ErrorResponse::new(
+                ErrorResponseType::Forbidden,
+                "This auth provider is not allowed for this client",
+            ))
+        }
+    }
+
     pub fn get_allowed_resources(&self) -> Option<Vec<String>> {
         self.allowed_resources.as_ref()?;
         Some(self.allowed_resources_iter().map(String::from).collect())
@@ -1638,6 +1676,7 @@ impl Client {
             .and_then(|bytes| serde_json::from_slice(bytes).ok());
         let allowed_resources = self.get_allowed_resources();
         let default_aud = self.get_default_aud();
+        let allowed_providers = self.get_allowed_providers();
 
         let access_token_alg = JwkKeyPairAlg::from_str(&self.access_token_alg)
             .expect("internal JwkKeyPairAlg conversion to always succeed")
@@ -1671,6 +1710,7 @@ impl Client {
             claims_at_root: self.claims_at_root,
             allowed_resources,
             default_aud,
+            allowed_providers,
             scim: scim.map(|scim| ScimClientRequestResponse {
                 bearer_token: scim.bearer_token,
                 base_uri: scim.base_uri,
@@ -1726,6 +1766,7 @@ impl From<EphemeralClientRequest> for Client {
             claims_at_root: false,
             allowed_resources: value.allowed_resources.map(|r| r.join(",")),
             default_aud: None,
+            allowed_providers: None,
         }
     }
 }
@@ -1769,6 +1810,7 @@ impl Default for Client {
             claims_at_root: false,
             allowed_resources: None,
             default_aud: None,
+            allowed_providers: None,
         }
     }
 }
@@ -2056,6 +2098,7 @@ mod tests {
             claims_at_root: false,
             allowed_resources: None,
             default_aud: None,
+            allowed_providers: None,
         };
 
         assert_eq!(client.get_access_token_alg().unwrap(), JwkKeyPairAlg::EdDSA);

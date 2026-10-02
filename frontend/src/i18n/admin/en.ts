@@ -37,8 +37,10 @@ export let I18nAdminEn: I18nAdmin = {
         size: 'Size',
     },
     clients: {
+        allowedProviders: 'Allowed Login Providers',
         allowedResources: 'Allowed Resources',
         defaultAud: 'Default Audiences',
+        descAllowedProviders: `Upstream providers shown on this client's login page and accepted for its logins. With none selected, all enabled providers are allowed.`,
         descAllowedResources: `Optional RFC 8707 resource indicators this client may request. An empty list rejects any 'resource' request parameter with 'invalid_target'.`,
         descDefaultAud: `Audiences that are always added to this client's tokens, independent of any 'resource' request parameter.`,
         backchannelLogout: 'If this client supports {{ OIDC_BCL }}, you can provide the URI here.',

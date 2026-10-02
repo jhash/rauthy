@@ -1,8 +1,8 @@
 use crate::oidc::GrantType;
 use rauthy_common::constants::CLIENT_CLAIMS_MAX_LEN;
 use rauthy_common::regex::{
-    RE_ATTR, RE_CODE_CHALLENGE_METHOD, RE_CONTACT, RE_GROUPS, RE_LINUX_HOSTNAME, RE_ORIGIN,
-    RE_RESOURCE, RE_ROLES_SCOPES, RE_URI,
+    RE_ALNUM, RE_ATTR, RE_CODE_CHALLENGE_METHOD, RE_CONTACT, RE_GROUPS, RE_LINUX_HOSTNAME,
+    RE_ORIGIN, RE_RESOURCE, RE_ROLES_SCOPES, RE_URI,
 };
 use std::borrow::Cow;
 use std::str::FromStr;
@@ -112,6 +112,16 @@ pub fn validate_vec_resource(value: &[String]) -> Result<(), ValidationError> {
     for v in value {
         if !RE_RESOURCE.is_match(v) {
             return Err(ValidationError::new("^[a-zA-Z0-9,.:/_\\-&?=~!$'()*+%@]+$"));
+        }
+    }
+    Ok(())
+}
+
+#[inline]
+pub fn validate_vec_provider_ids(value: &[String]) -> Result<(), ValidationError> {
+    for v in value {
+        if !RE_ALNUM.is_match(v) {
+            return Err(ValidationError::new("^[a-zA-Z0-9]+$"));
         }
     }
     Ok(())

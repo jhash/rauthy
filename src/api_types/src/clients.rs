@@ -222,6 +222,10 @@ pub struct UpdateClientRequest {
     /// Validation: `Vec<^[a-zA-Z0-9,.:/_\\-&?=~!$'()*+%@]+$>`
     #[validate(custom(function = "validate_vec_resource"))]
     pub default_aud: Option<Vec<String>>,
+    /// Validation: `Vec<^[a-zA-Z0-9]+$>`
+    #[serde(default)]
+    #[validate(custom(function = "validate_vec_provider_ids"))]
+    pub allowed_providers: Option<Vec<String>>,
     #[validate(nested)]
     pub scim: Option<ScimClientRequestResponse>,
 }
@@ -286,6 +290,8 @@ pub struct ClientResponse {
     pub allowed_resources: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_aud: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_providers: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scim: Option<ScimClientRequestResponse>,
 }

@@ -1,5 +1,6 @@
 use crate::api_cookie::ApiCookie;
 use crate::database::{Cache, DB};
+use crate::entity::clients::Client;
 use crate::entity::logos::{Logo, LogoType};
 use crate::entity::users::User;
 use crate::entity::users_values::UserValues;
@@ -961,6 +962,23 @@ impl AuthProviderTemplate {
             .await?;
 
         Ok(json)
+    }
+
+    pub async fn get_json_template_for_client(client: &Client) -> Result<String, ErrorResponse> {
+        let all = Self::get_all_json_template().await?;
+        if client
+            .allowed_providers
+            .as_deref()
+            .is_none_or(str::is_empty)
+        {
+            return Ok(all);
+        }
+
+        let allowed = serde_json::from_str::<Vec<Self>>(&all)?
+            .into_iter()
+            .filter(|p| client.allows_provider(&p.id))
+            .collect::<Vec<_>>();
+        Ok(serde_json::to_string(&allowed)?)
     }
 
     async fn invalidate_cache() -> Result<(), ErrorResponse> {

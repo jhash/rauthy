@@ -36,8 +36,10 @@ export let I18nAdminKo: I18nAdmin = {
         size: 'Size',
     },
     clients: {
+        allowedProviders: '허용된 로그인 공급자',
         allowedResources: '허용된 리소스',
         defaultAud: '기본 대상(Audience)',
+        descAllowedProviders: `이 클라이언트의 로그인 페이지에 표시되고 로그인에 허용되는 업스트림 공급자입니다. 선택하지 않으면 활성화된 모든 공급자가 허용됩니다.`,
         descAllowedResources: `이 클라이언트가 요청할 수 있는 선택적 RFC 8707 리소스 인디케이터입니다. 목록이 비어 있으면 모든 'resource' 요청 파라미터를 'invalid_target'으로 거부합니다.`,
         descDefaultAud: `'resource' 요청 파라미터와 무관하게 이 클라이언트의 토큰에 항상 추가되는 대상(audience)입니다.`,
         backchannelLogout: 'If this client supports {{ OIDC_BCL }}, you can provide the URI here.',
