@@ -10,6 +10,23 @@ on its own:
 | `fix/session-user-switch` | a login never reuses or overwrites another user's session |
 | `feat/theme-custom-css` | `THEME_CUSTOM_DIR`: custom CSS appended to every theme, fonts served from it |
 | `feat/client-theme-register-reset` | registration and password pages use the client's theme |
+| `feat/prompt-create` | sign-up in the login window, `prompt=create` (stacked on the theme branch above) |
+| `feat/account-delete-link` | `/auth/v1/account?v=delete` opens the self-delete confirmation |
+
+`mili-next` adds the patches that change the database schema, which `mili` leaves out until
+their migrations are settled with upstream (see below):
+
+| Branch | Change | Migration |
+|---|---|---|
+| `feat/client-provider-allowlist` | per-client allowlist of upstream providers | `clients.allowed_providers` |
+| `fix/pg-provider-delete` | deleting a provider works on Postgres | none |
+| `feat/multiple-provider-links` | several upstream providers per user | `user_federations` |
+
+Hiqlite applies migrations by number and refuses a database whose applied migrations differ
+from the ones it ships. Every schema patch here takes the next free upstream number, so a
+database that ran `mili-next` holds migrations that the next upstream release numbers
+differently. Moving such a database to an upstream image needs the fork's migrations renumbered
+to match whatever upstream merged, before that image starts.
 
 Only this directory is mili-specific:
 
