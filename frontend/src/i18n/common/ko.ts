@@ -137,6 +137,8 @@ export const I18nKo: I18n = {
             선택한 공급자의 로그인 페이지로 리디렉션이 트리거됩니다. 로그인에 성공하고 이메일 주소가 일치하면 이 
             계정이 연결됩니다.`,
         providerUnlink: '연결 해제',
+        providerLinkReauth: '보안을 위해 다른 로그인 공급자를 연결하기 전에 다시 로그인하세요.',
+        providerLinkReauthButton: '다시 로그인',
         providerUnlinkDesc: `이 계정에 최소 하나 이상의 비밀번호 또는 패스키가 설정되어 있는 경우에만 공급자 
             연결을 해제할 수 있습니다.`,
         regDate: '가입일',

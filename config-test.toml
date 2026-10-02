@@ -50,6 +50,9 @@ max_hash_threads = 1
 danger_unencrypted = true
 danger_insecure = true
 
+[lifetimes]
+provider_link_recent_auth = 5
+
 [logging]
 level = 'debug'
 

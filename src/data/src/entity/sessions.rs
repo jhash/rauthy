@@ -454,6 +454,38 @@ SET user_id = $3, roles = $4, groups = $5, is_mfa = $6, state = $7, exp = $8, la
     }
 
     #[inline]
+    fn recent_auth_idx(id: &str) -> String {
+        format!("session_recent_auth_{id}")
+    }
+
+    pub async fn mark_recent_auth(&self) -> Result<(), ErrorResponse> {
+        let window = RauthyConfig::get().vars.lifetimes.provider_link_recent_auth;
+        DB::hql()
+            .put(
+                Cache::App,
+                Self::recent_auth_idx(&self.id),
+                &Utc::now().timestamp(),
+                Some(window as i64),
+            )
+            .await?;
+        Ok(())
+    }
+
+    pub async fn validate_recent_auth(&self) -> Result<(), ErrorResponse> {
+        let window = RauthyConfig::get().vars.lifetimes.provider_link_recent_auth as i64;
+        let authenticated_at: Option<i64> = DB::hql()
+            .get(Cache::App, Self::recent_auth_idx(&self.id))
+            .await?;
+        if authenticated_at.is_some_and(|ts| Utc::now().timestamp() - ts <= window) {
+            Ok(())
+        } else {
+            Err(ErrorResponse::new(
+                ErrorResponseType::Forbidden,
+                format!("This action needs a sign-in within the last {window} seconds"),
+            ))
+        }
+    }
+
     pub async fn set_authenticated(&mut self, user: &User) -> Result<(), ErrorResponse> {
         self.last_seen = Utc::now().timestamp();
         self.state = SessionState::Auth;

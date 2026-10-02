@@ -573,8 +573,9 @@ pub async fn post_provider_link(
     principal: ReqPrincipal,
     Json(payload): Json<ProviderLoginRequest>,
 ) -> Result<HttpResponse, ErrorResponse> {
-    principal.validate_session_auth()?;
+    let session = principal.validate_session_auth()?;
     payload.validate()?;
+    session.validate_recent_auth().await?;
 
     let user_id = principal.user_id()?.to_string();
     let user = User::find(user_id).await?;

@@ -142,6 +142,9 @@ export const I18nNl: I18n = {
             provider. Na een succesvolle login en als het e-mailadres overeenkomt, wordt uw account
             gekoppeld.`,
         providerUnlink: 'Koppeling verbreken',
+        providerLinkReauth:
+            'Log om veiligheidsredenen opnieuw in voordat u een andere loginprovider koppelt.',
+        providerLinkReauthButton: 'Opnieuw inloggen',
         providerUnlinkDesc: `Alleen als u minimaal een wachtwoord of een passkey heeft ingesteld\n
             voor dit account, kunt u de koppeling met de upstream provider verbreken.`,
         regDate: 'Registratiedatum',

@@ -144,6 +144,9 @@ export const I18nDe: I18n = {
             des gewählten Providers ausgelöst. Nach erfolgreichem Login und bei Übereinstimmung der 
             E-Mail\nAdressen wird dieser Account verknüpft.`,
         providerUnlink: 'Verbindung Trennen',
+        providerLinkReauth:
+            'Aus Sicherheitsgründen bitte erneut anmelden, bevor ein weiterer Login-Provider verknüpft wird.',
+        providerLinkReauthButton: 'Erneut anmelden',
         providerUnlinkDesc: `Nur wenn mindestens ein Passwort oder ein Passkey für diesen\nAccount 
             gesetzt ist, kann die Verbindung zum Provider gelöst werden.`,
         regDate: 'Datum der Registrierung',

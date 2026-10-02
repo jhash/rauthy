@@ -100,6 +100,7 @@ pub async fn login_finish<'a>(
     }
 
     // From here on, we deal with a normal login instead of just an account federation.
+    session.mark_recent_auth().await?;
 
     let require_webauthn = user.has_webauthn_enabled();
     session

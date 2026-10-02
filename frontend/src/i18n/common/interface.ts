@@ -113,6 +113,8 @@ export interface I18n {
         providerLink: string;
         providerLinkDesc: string;
         providerUnlink: string;
+        providerLinkReauth: string;
+        providerLinkReauthButton: string;
         providerUnlinkDesc: string;
         regDate: string;
         regIp: string;

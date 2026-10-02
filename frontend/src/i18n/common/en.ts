@@ -141,6 +141,8 @@ export const I18nEn: I18n = {
             activating this function, you will be redirected to the login page of the chosen one.\n
             After a successful login and if the email matches, your account will be linked.`,
         providerUnlink: 'Unlink Federation',
+        providerLinkReauth: 'For security, sign in again before linking another login provider.',
+        providerLinkReauthButton: 'Sign in again',
         providerUnlinkDesc: `Only if you have set up at least a password or a passkey for this\n
             account, you can unlink it from the upstream provider.`,
         regDate: 'Registration Date',

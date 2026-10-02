@@ -21,6 +21,7 @@ type TestResult = Result<(), Box<dyn Error>>;
 
 const PKCE_VERIFIER: &str = "oDXug9zfYqfz8ejcqMpALRPXfW8QhbKV2AVuScAt8xrLKDAmaRYQ4yRi2uqcH9ys";
 const PASSWORD: &str = "123SuperSafe123";
+const RECENT_AUTH_TEST_SECS: u64 = 5;
 
 fn unique(prefix: &str) -> String {
     format!("{prefix}{}", secure_random_alnum(10).to_lowercase())
@@ -442,6 +443,7 @@ async fn test_two_providers_sign_in_as_the_same_user() -> TestResult {
     let mut browser = Browser::new().await?;
     browser.password_login(&email).await?;
     expect_status(browser.link(&google, &identity("g-1", &email)).await?, 204).await?;
+    browser.password_login(&email).await?;
     expect_status(browser.link(&github, &identity("gh-1", &email)).await?, 204).await?;
 
     let mut linked = browser
@@ -476,6 +478,7 @@ async fn test_same_provider_cannot_be_linked_twice() -> TestResult {
     let mut browser = Browser::new().await?;
     browser.password_login(&email).await?;
     expect_status(browser.link(&google, &identity("g-2", &email)).await?, 204).await?;
+    browser.password_login(&email).await?;
     let res = browser.link(&google, &identity("g-3", &email)).await?;
     assert_eq!(res.status().as_u16(), 400);
     assert_eq!(browser.links().await?.len(), 1);
@@ -554,6 +557,7 @@ async fn test_deleting_a_provider_or_user_removes_its_links() -> TestResult {
     let mut browser = Browser::new().await?;
     browser.password_login(&email).await?;
     expect_status(browser.link(&kept, &identity("k-1", &email)).await?, 204).await?;
+    browser.password_login(&email).await?;
     expect_status(browser.link(&removed, &identity("r-1", &email)).await?, 204).await?;
 
     let admin = get_auth_headers().await?;
@@ -576,5 +580,25 @@ async fn test_deleting_a_provider_or_user_removes_its_links() -> TestResult {
     let mut stranger = Browser::new().await?;
     let res = stranger.sign_in(&kept, &identity("k-1", &email)).await?;
     assert_eq!(res.status().as_u16(), 404);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_linking_needs_a_recent_sign_in() -> TestResult {
+    let mock = start_mock_upstream().await?;
+    let google = create_provider(&mock, false).await?;
+    let email = format!("{}@links.test", unique("recent"));
+    create_password_user(&email).await?;
+
+    let mut browser = Browser::new().await?;
+    browser.password_login(&email).await?;
+    tokio::time::sleep(std::time::Duration::from_secs(RECENT_AUTH_TEST_SECS + 1)).await;
+    let res = browser.link(&google, &identity("g-5", &email)).await?;
+    assert_eq!(res.status().as_u16(), 403);
+    assert!(browser.links().await?.is_empty());
+
+    browser.password_login(&email).await?;
+    expect_status(browser.link(&google, &identity("g-5", &email)).await?, 204).await?;
+    assert_eq!(browser.links().await?.len(), 1);
     Ok(())
 }
