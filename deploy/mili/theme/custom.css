@@ -1,0 +1,110 @@
+@font-face {
+    font-family: "Lora";
+    src: url("/auth/v1/theme_assets/Lora-VariableFont_wght.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: optional;
+}
+
+body,
+.theme-light {
+    --mili-font-heading: "Lora", ui-serif, "Georgia", "Cambria", "Times New Roman", "Times", serif;
+    --mili-font-body: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --mili-shadow: oklch(21% 0.034 264.665 / 12%);
+    --mili-shadow-raised: 0 1px 3px 0 var(--mili-shadow);
+    --mili-shadow-overlay: 0 8px 24px 0 var(--mili-shadow);
+}
+
+.theme-dark {
+    --mili-shadow: oklch(0% 0 0 / 50%);
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        --mili-shadow: oklch(0% 0 0 / 50%);
+    }
+
+    .theme-light {
+        --mili-shadow: oklch(21% 0.034 264.665 / 12%);
+    }
+}
+
+html body,
+html body :is(input, button, textarea, select) {
+    font-family: var(--mili-font-body);
+}
+
+html body {
+    line-height: 1.5;
+}
+
+html body :is(h1, h2, h3, h4, h5, h6) {
+    font-family: var(--mili-font-heading);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+html body .outer[class*="svelte-"] {
+    background: hsl(var(--bg));
+}
+
+html body .container[class*="svelte-"] {
+    max-width: 24rem;
+    padding: 1.5rem;
+    border: 1px solid hsl(var(--bg-high));
+    border-radius: 12px;
+    background: hsl(var(--bg));
+    box-shadow: var(--mili-shadow-overlay);
+}
+
+html body button:is(.l1, .l2, .l3, .l1d, .l2d, .l3d)[class*="svelte-"] {
+    height: 2.25rem;
+    padding: 0 1rem;
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: var(--mili-shadow-raised);
+    transition: background-color 150ms, box-shadow 150ms, transform 150ms;
+}
+
+html body button.l1[class*="svelte-"] {
+    border: 1px solid hsl(var(--action));
+    background: hsl(var(--action));
+}
+
+html body button.l1[class*="svelte-"]:hover {
+    background: hsl(var(--action) / 0.9);
+}
+
+html body button:is(.l2, .l3)[class*="svelte-"] {
+    border: 1px solid hsl(var(--bg-high));
+    color: hsl(var(--text-high));
+    background: hsl(var(--bg));
+}
+
+html body button:is(.l2, .l3)[class*="svelte-"]:hover {
+    background: hsl(var(--bg-high));
+}
+
+html body button:is(.l1, .l2, .l3, .l1d, .l2d, .l3d)[class*="svelte-"]:active {
+    transform: scale(0.98);
+}
+
+html body button[class*="svelte-"]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px hsl(var(--accent) / 0.5);
+}
+
+html body input:not([type="checkbox"], [type="radio"], [type="range"]) {
+    min-height: 2.25rem;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid hsl(var(--bg-high));
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    box-shadow: var(--mili-shadow-raised);
+}
+
+html body input:focus-visible {
+    border-color: hsl(var(--accent));
+    box-shadow: 0 0 0 3px hsl(var(--accent) / 0.5);
+}
