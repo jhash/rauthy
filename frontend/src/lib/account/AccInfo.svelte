@@ -11,8 +11,8 @@
         AuthProviderTemplate,
     } from '$api/templates/AuthProvider.ts';
     import type { WebIdResponse } from '$api/types/web_id.ts';
-    import type { ProviderLoginRequest } from '$api/types/auth_provider.ts';
-    import { fetchDelete, fetchPost } from '$api/fetch';
+    import type { ProviderLinkResponse, ProviderLoginRequest } from '$api/types/auth_provider.ts';
+    import { fetchDelete, fetchGet, fetchPost } from '$api/fetch';
     import ButtonAuthProvider from '../ButtonAuthProvider.svelte';
     import UserPicture from '$lib/UserPicture.svelte';
     import { fetchSolvePow } from '$utils/pow';
@@ -39,6 +39,24 @@
 
     let unlinkErr = $state(false);
     let showModal = $state(false);
+    let links: ProviderLinkResponse[] = $state([]);
+    let linkedProviders = $derived(
+        links.map(l => providers.find(p => p.id === l.provider_id)).filter(p => p !== undefined),
+    );
+    let unlinkedProviders = $derived(
+        providers.filter(p => !links.some(l => l.provider_id === p.id)),
+    );
+
+    $effect(() => {
+        fetchLinks();
+    });
+
+    async function fetchLinks() {
+        let res = await fetchGet<ProviderLinkResponse[]>('/auth/v1/providers/links');
+        if (res.body) {
+            links = res.body;
+        }
+    }
 
     let isFederated = $derived(user.account_type?.startsWith('federated'));
     let accType = $derived(
@@ -99,10 +117,12 @@
         }
     }
 
-    async function unlinkProvider() {
-        let res = await fetchDelete<UserResponse>('/auth/v1/providers/link');
+    async function unlinkProvider(id: string) {
+        let res = await fetchDelete<UserResponse>(`/auth/v1/providers/${id}/link`);
         if (res.body) {
+            unlinkErr = false;
             user = res.body;
+            await fetchLinks();
         } else {
             console.error(res.error);
             unlinkErr = true;
@@ -156,18 +176,24 @@
         <div class={classLabel}>{t.account.accType}</div>
         <div>
             <div class="value">{accType || ''}</div>
-            {#if isFederated}
+            {#each linkedProviders as provider (provider.id)}
                 <div class="fed-btn">
-                    <Button ariaLabel={t.account.providerUnlink} level={3} onclick={unlinkProvider}>
+                    <span class="value">{provider.name}</span>
+                    <Button
+                        ariaLabel={`${t.account.providerUnlink}: ${provider.name}`}
+                        level={3}
+                        onclick={() => unlinkProvider(provider.id)}
+                    >
                         {t.account.providerUnlink}
                     </Button>
-                    {#if unlinkErr}
-                        <div class="link-err value">
-                            {t.account.providerUnlinkDesc}
-                        </div>
-                    {/if}
                 </div>
-            {:else if providers.length > 0}
+            {/each}
+            {#if unlinkErr}
+                <div class="link-err value">
+                    {t.account.providerUnlinkDesc}
+                </div>
+            {/if}
+            {#if unlinkedProviders.length > 0}
                 <Button level={2} onclick={() => (showModal = true)}>
                     {t.account.providerLink}
                 </Button>
@@ -176,7 +202,7 @@
                     <p>{t.account.providerLinkDesc}</p>
 
                     <div class="providers">
-                        {#each providers as provider (provider.id)}
+                        {#each unlinkedProviders as provider (provider.id)}
                             <ButtonAuthProvider
                                 ariaLabel={`${t.account.providerLink}: ${provider.name}`}
                                 {provider}

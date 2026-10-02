@@ -94,6 +94,13 @@ pub struct ProviderCallbackRequest {
     pub iss_atproto: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct ProviderLinkResponse {
+    pub provider_id: String,
+    pub federation_uid: String,
+    pub created: i64,
+}
+
 #[derive(Deserialize, Validate, ToSchema)]
 #[cfg_attr(debug_assertions, derive(Serialize))]
 pub struct ProviderLoginRequest {

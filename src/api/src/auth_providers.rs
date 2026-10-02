@@ -7,7 +7,9 @@ use rauthy_api_types::auth_providers::{
     ProviderCallbackRequest, ProviderLinkedUserResponse, ProviderLoginRequest,
     ProviderLookupRequest, ProviderRequest,
 };
-use rauthy_api_types::auth_providers::{ProviderLookupResponse, ProviderResponse};
+use rauthy_api_types::auth_providers::{
+    ProviderLinkResponse, ProviderLookupResponse, ProviderResponse,
+};
 use rauthy_api_types::generic::LogoParams;
 use rauthy_api_types::users::{UserResponse, WebauthnLoginResponse};
 use rauthy_common::constants::{HEADER_JSON, PROVIDER_ATPROTO};
@@ -18,6 +20,7 @@ use rauthy_data::entity::auth_providers::{
 use rauthy_data::entity::logos::{Logo, LogoType};
 use rauthy_data::entity::pow::PowEntity;
 use rauthy_data::entity::theme::ThemeCssFull;
+use rauthy_data::entity::user_federations::UserFederation;
 use rauthy_data::entity::users::User;
 use rauthy_data::html::HtmlCached;
 use rauthy_error::{ErrorResponse, ErrorResponseType};
@@ -251,6 +254,53 @@ pub async fn delete_provider_link(principal: ReqPrincipal) -> Result<HttpRespons
     let user_id = principal.user_id()?.to_string();
     let user = User::provider_unlink(user_id).await?;
     Ok(HttpResponse::Ok().json(user.into_response(None)))
+}
+
+/// DELETE the link between the currently logged-in user and one upstream provider
+///
+/// The account must keep a password, a passkey or another provider link.
+#[utoipa::path(
+    delete,
+    path = "/providers/{id}/link",
+    tag = "providers",
+    responses(
+        (status = 200, description = "OK", body = UserResponse),
+        (status = 400, description = "BadRequest", body = ErrorResponse),
+        (status = 404, description = "NotFound", body = ErrorResponse),
+    ),
+)]
+#[delete("/providers/{id}/link")]
+pub async fn delete_provider_link_one(
+    provider_id: web::Path<String>,
+    principal: ReqPrincipal,
+) -> Result<HttpResponse, ErrorResponse> {
+    principal.validate_session_auth()?;
+
+    let user_id = principal.user_id()?.to_string();
+    let user = User::provider_unlink_one(user_id, &provider_id).await?;
+    Ok(HttpResponse::Ok().json(user.into_response(None)))
+}
+
+/// GET the upstream provider links of the currently logged-in user
+#[utoipa::path(
+    get,
+    path = "/providers/links",
+    tag = "providers",
+    responses(
+        (status = 200, description = "OK", body = [ProviderLinkResponse]),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+    ),
+)]
+#[get("/providers/links")]
+pub async fn get_provider_links(principal: ReqPrincipal) -> Result<HttpResponse, ErrorResponse> {
+    principal.validate_session_auth()?;
+
+    let links = UserFederation::find_for_user(principal.user_id()?)
+        .await?
+        .into_iter()
+        .map(ProviderLinkResponse::from)
+        .collect::<Vec<_>>();
+    Ok(HttpResponse::Ok().json(links))
 }
 
 /// GET all upstream auth providers as templated minimal JSON
@@ -529,17 +579,17 @@ pub async fn post_provider_link(
     let user_id = principal.user_id()?.to_string();
     let user = User::find(user_id).await?;
 
-    // make sure the user is currently un-linked
-    if user.auth_provider_id.is_some() {
+    let provider_id = provider_id.into_inner();
+    if user.has_link_to_provider(&provider_id).await? {
         return Err(ErrorResponse::new(
             ErrorResponseType::BadRequest,
-            "user is already federated",
+            "user is already linked to this provider",
         ));
     }
 
     // set an encrypted cookie with the provider_id + user_id / email
     let link_cookie = AuthProviderLinkCookie {
-        provider_id: provider_id.into_inner(),
+        provider_id,
         user_id: user.id,
         user_email: user.email,
     };

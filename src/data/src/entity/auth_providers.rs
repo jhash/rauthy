@@ -1,6 +1,7 @@
 use crate::api_cookie::ApiCookie;
 use crate::database::{Cache, DB};
 use crate::entity::logos::{Logo, LogoType};
+use crate::entity::user_federations::UserFederation;
 use crate::entity::users::User;
 use crate::entity::users_values::UserValues;
 use crate::entity::{atproto, auth_provider_cust_impls};
@@ -1123,6 +1124,7 @@ impl AuthProviderIdClaims<'_> {
             }
         };
 
+        let mut new_link = false;
         let (user_opt, new_federated_user) = match User::find_by_federation(
             &provider.id,
             &claims_user_id,
@@ -1131,6 +1133,15 @@ impl AuthProviderIdClaims<'_> {
         {
             Ok(user) => {
                 debug!("found already existing user by federation lookup: {user:?}");
+                if link_cookie
+                    .as_ref()
+                    .is_some_and(|link| link.user_id != user.id)
+                {
+                    return Err(ErrorResponse::new(
+                        ErrorResponseType::BadRequest,
+                        "This upstream account is already linked to another user",
+                    ));
+                }
                 (Some(user), NewFederatedUserCreated::No)
             }
             Err(_) => {
@@ -1164,10 +1175,18 @@ impl AuthProviderIdClaims<'_> {
                             ));
                         }
 
-                        // If we got here, everything was fine, and we can create the link.
-                        // No need to `.save()` here, will be done later anyway with other updates.
-                        user.auth_provider_id = Some(provider.id.clone());
-                        user.federation_uid = Some(claims_user_id.clone());
+                        if user.has_link_to_provider(&provider.id).await? {
+                            return Err(ErrorResponse::new(
+                                ErrorResponseType::BadRequest,
+                                "The account is already linked to this provider",
+                            ));
+                        }
+
+                        if user.auth_provider_id.is_none() {
+                            user.auth_provider_id = Some(provider.id.clone());
+                            user.federation_uid = Some(claims_user_id.clone());
+                        }
+                        new_link = true;
 
                         (Some(user), NewFederatedUserCreated::No)
                     } else if provider.auto_link
@@ -1176,6 +1195,7 @@ impl AuthProviderIdClaims<'_> {
                     {
                         user.auth_provider_id = Some(provider.id.clone());
                         user.federation_uid = Some(claims_user_id.clone());
+                        new_link = true;
 
                         (Some(user), NewFederatedUserCreated::No)
                     } else {
@@ -1187,6 +1207,11 @@ impl AuthProviderIdClaims<'_> {
                             ),
                         ));
                     }
+                } else if link_cookie.is_some() {
+                    return Err(ErrorResponse::new(
+                        ErrorResponseType::BadRequest,
+                        "The upstream account's E-Mail does not match this account",
+                    ));
                 } else if !provider.auto_onboarding {
                     return Err(ErrorResponse::new(
                         ErrorResponseType::NotFound,
@@ -1287,18 +1312,12 @@ impl AuthProviderIdClaims<'_> {
             let mut old_email = None;
             let mut forbidden_error = None;
 
-            // validate federation_uid
             // we must reject any upstream login, if a non-federated local user with the same email
             // exists, as it could lead to an account takeover
-            if user.federation_uid.is_none()
-                || user.federation_uid.as_deref() != Some(&claims_user_id)
-            {
+            let is_primary = user.auth_provider_id.as_deref() == Some(&provider.id)
+                && user.federation_uid.as_deref() == Some(&claims_user_id);
+            if !new_link && !user.is_linked_to(&provider.id, &claims_user_id).await? {
                 forbidden_error = Some("non-federated user or ID mismatch");
-            }
-
-            // validate auth_provider_id
-            if user.auth_provider_id.as_deref() != Some(&provider.id) {
-                forbidden_error = Some("invalid login from wrong auth provider");
             }
 
             if let Some(err) = forbidden_error {
@@ -1314,7 +1333,7 @@ impl AuthProviderIdClaims<'_> {
             }
 
             // check / update email
-            if Some(user.email.as_str()) != self.email.as_deref() {
+            if is_primary && Some(user.email.as_str()) != self.email.as_deref() {
                 old_email = Some(user.email);
                 user.email = self.email.as_ref().unwrap().to_string();
             }
@@ -1361,6 +1380,9 @@ impl AuthProviderIdClaims<'_> {
             user.failed_login_attempts = None;
 
             user.save(old_email).await?;
+            if new_link {
+                UserFederation::insert(&user.id, &provider.id, &claims_user_id).await?;
+            }
             user
         } else {
             // Create a new federated user
@@ -1389,7 +1411,9 @@ impl AuthProviderIdClaims<'_> {
                 federation_uid: Some(claims_user_id.to_string()),
                 ..Default::default()
             };
-            User::create_federated(new_user).await?
+            let user = User::create_federated(new_user).await?;
+            UserFederation::insert(&user.id, &provider.id, &claims_user_id).await?;
+            user
         };
 
         // check if we got additional values from the token
