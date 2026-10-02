@@ -904,10 +904,15 @@ pub struct PwdResetHtml<'a> {
 impl PwdResetHtml<'_> {
     // If the email is Some(_), this means that the user has webauthn enabled and does not need
     // to provide the email manually
-    pub fn build(lang: &Language, theme_ts: i64, template: TplPasswordReset) -> String {
+    pub fn build(
+        lang: &Language,
+        client_id: &str,
+        theme_ts: i64,
+        template: TplPasswordReset,
+    ) -> String {
         let res = PwdResetHtml {
             lang: lang.as_str(),
-            client_id: "rauthy",
+            client_id,
             theme_ts,
             templates: &[HtmlTemplate::PasswordReset(template)],
         };
@@ -972,9 +977,18 @@ pub struct UserRegisterHtml<'a> {
 
 impl UserRegisterHtml<'_> {
     pub fn build(lang: &Language, theme_ts: i64, auth_providers: HtmlTemplate) -> String {
+        Self::build_for_client(lang, "rauthy", theme_ts, auth_providers)
+    }
+
+    pub fn build_for_client(
+        lang: &Language,
+        client_id: &str,
+        theme_ts: i64,
+        auth_providers: HtmlTemplate,
+    ) -> String {
         UserRegisterHtml {
             lang: lang.as_str(),
-            client_id: "rauthy",
+            client_id,
             theme_ts,
             templates: &[
                 HtmlTemplate::RestrictedEmailDomain(
