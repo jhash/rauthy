@@ -879,6 +879,7 @@ pub async fn auth_finish(
                 }
 
                 session.set_authenticated(&user).await?;
+                session.mark_recent_auth().await?;
                 user.last_login = Some(Utc::now().timestamp());
                 user.last_failed_login = None;
                 user.failed_login_attempts = None;

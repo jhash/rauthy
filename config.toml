@@ -2118,6 +2118,13 @@ magic_link_pwd_reset = 30
 # overwritten by: ML_LT_PWD_FIRST
 magic_link_pwd_first = 4320
 
+# Linking an upstream auth provider to an existing account needs a
+# sign-in with credentials in the same session within this many seconds.
+#
+# default: 600
+# overwritten by: PROVIDER_LINK_RECENT_AUTH
+#provider_link_recent_auth = 600
+
 # JWKS auto rotate cronjob. This will (by default) rotate all JWKs every
 # 1. day of the month. If you need smaller intervals, you may adjust this
 # value. For security reasons, you cannot fully disable it.

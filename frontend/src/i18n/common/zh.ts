@@ -131,6 +131,8 @@ export const I18nZh: I18n = {
         providerLinkDesc: `您可以将此账户连接到下列登陆提供者之一。\n
             激活此功能后，您将被重定向至所选提供者的登陆页面。在成功登陆后，如果电子邮件匹配，您的账户将被连接。`,
         providerUnlink: '取消联合',
+        providerLinkReauth: '为了安全，请在连接其他登录提供方之前重新登录。',
+        providerLinkReauthButton: '重新登录',
         providerUnlinkDesc: '仅当您已设置至少一个密码或登陆密钥后，您才能和登陆提供者取消连接。',
         regDate: '注册日期',
         regIp: '注册IP地址',

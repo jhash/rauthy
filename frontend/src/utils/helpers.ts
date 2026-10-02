@@ -50,7 +50,7 @@ export const accountUrlForState = (state: string): string => {
         : REDIRECT_URI_SUCCESS_ACC;
 };
 
-export const redirectToLogin = (state?: string) => {
+export const redirectToLogin = (state?: string, prompt?: 'login') => {
     generatePKCE().then(pkce => {
         if (pkce) {
             localStorage.setItem(PKCE_VERIFIER, pkce.verifier);
@@ -61,7 +61,7 @@ export const redirectToLogin = (state?: string) => {
             const redirect_uri = `${window.location.origin}${REDIRECT_URI}`
                 .replaceAll(':', '%3A')
                 .replaceAll('/', '%2F');
-            window.location.href = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${redirect_uri}&response_type=code&code_challenge=${pkce.challenge}&code_challenge_method=S256&scope=openid+profile+email&nonce=${nonce}&state=${s}`;
+            window.location.href = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${redirect_uri}&response_type=code&code_challenge=${pkce.challenge}&code_challenge_method=S256&scope=openid+profile+email&nonce=${nonce}&state=${s}${prompt ? `&prompt=${prompt}` : ''}`;
         }
     });
 };

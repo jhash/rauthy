@@ -112,6 +112,7 @@ pub async fn post_authorize(
         // not really a false positive. We want to inform a user even if only the password got
         // stolen, so that users change them even without full account compromise.
         LoginLocation::spawn_background_check(user.clone(), req, browser_id)?;
+        session.mark_recent_auth().await?;
 
         // update user info
         // in case of webauthn login, the info will be updated in the oidc finish step

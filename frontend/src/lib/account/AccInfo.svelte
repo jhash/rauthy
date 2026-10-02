@@ -1,6 +1,11 @@
 <script lang="ts">
     import CheckIcon from '$lib5/CheckIcon.svelte';
-    import { buildWebIdUri, formatDateFromTs, saveProviderToken } from '$utils/helpers';
+    import {
+        buildWebIdUri,
+        formatDateFromTs,
+        redirectToLogin,
+        saveProviderToken,
+    } from '$utils/helpers';
     import Button from '$lib5/button/Button.svelte';
     import Modal from '$lib5/Modal.svelte';
     import { PKCE_VERIFIER_UPSTREAM } from '$utils/constants';
@@ -38,6 +43,7 @@
     let t = useI18n();
 
     let unlinkErr = $state(false);
+    let needsReauth = $state(false);
     let showModal = $state(false);
     let links: ProviderLinkResponse[] = $state([]);
     let linkedProviders = $derived(
@@ -112,6 +118,8 @@
             if (loc) {
                 window.location.href = loc;
             }
+        } else if (res.status === 403) {
+            needsReauth = true;
         } else {
             console.error(res.error);
         }
@@ -200,6 +208,12 @@
                 <Modal bind:showModal>
                     <h3>{t.account.providerLink}</h3>
                     <p>{t.account.providerLinkDesc}</p>
+                    {#if needsReauth}
+                        <p class="link-err">{t.account.providerLinkReauth}</p>
+                        <Button level={1} onclick={() => redirectToLogin('account', 'login')}>
+                            {t.account.providerLinkReauthButton}
+                        </Button>
+                    {/if}
 
                     <div class="providers">
                         {#each unlinkedProviders as provider (provider.id)}

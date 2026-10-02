@@ -562,6 +562,7 @@ impl Default for Vars {
                 session_timeout: 5400,
                 magic_link_pwd_reset: 30,
                 magic_link_pwd_first: 4320,
+                provider_link_recent_auth: 600,
                 jwk_autorotate_cron: "0 30 3 1 * * *".into(),
             },
             logging: VarsLogging {
@@ -2807,6 +2808,14 @@ impl Vars {
         ) {
             self.lifetimes.magic_link_pwd_first = v;
         }
+        if let Some(v) = t_u32(
+            &mut table,
+            "lifetimes",
+            "provider_link_recent_auth",
+            "PROVIDER_LINK_RECENT_AUTH",
+        ) {
+            self.lifetimes.provider_link_recent_auth = v;
+        }
         if let Some(v) = t_str(
             &mut table,
             "lifetimes",
@@ -3966,6 +3975,7 @@ pub struct VarsLifetimes {
     pub session_timeout: u32,
     pub magic_link_pwd_reset: u32,
     pub magic_link_pwd_first: u32,
+    pub provider_link_recent_auth: u32,
     pub jwk_autorotate_cron: Cow<'static, str>,
 }
 

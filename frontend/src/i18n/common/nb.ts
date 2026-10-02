@@ -140,6 +140,9 @@ export const I18nNb: I18n = {
             Etter aktivering blir du videresendt til leverandørens innloggingsside. Ved vellykket 
             innlogging og samsvarende e-postadresser kobles kontoen.`,
         providerUnlink: 'Fjern kobling',
+        providerLinkReauth:
+            'Av sikkerhetshensyn må du logge inn på nytt før du kobler til en annen innloggingsleverandør.',
+        providerLinkReauthButton: 'Logg inn på nytt',
         providerUnlinkDesc: `Du kan kun fjerne koblingen til leverandøren hvis minst ett passord 
             eller en passkey er satt for denne kontoen.`,
         regDate: 'Registreringsdato',

@@ -143,6 +143,9 @@ export const I18nFr: I18n = {
             Après avoir activé cette fonction, vous serez redirigé vers la page de connexion du fournisseur choisi.\n
             Après une connexion réussie et si l’adresse e-mail correspond, votre compte sera lié.`,
         providerUnlink: 'Dissocier la fédération',
+        providerLinkReauth:
+            'Par sécurité, reconnectez-vous avant d’associer un autre fournisseur de connexion.',
+        providerLinkReauthButton: 'Se reconnecter',
         providerUnlinkDesc: `Vous ne pouvez dissocier ce compte du fournisseur d’accès\n
             que si vous avez configuré au moins un mot de passe ou une clé d’accès.`,
         regDate: `Date d'inscription`,
