@@ -470,6 +470,19 @@ VALUES ($1, $2, $3, $4)"#;
     /// If allowed, it will dynamically build an ephemeral client and cache it, it the client_id
     /// is a URL. Otherwise, it will do a classic fetch from the database.
     /// This function should be used in places where we would possibly accept an ephemeral client.
+    pub async fn find_by_client_uri(client_uri: &str) -> Result<Option<Self>, ErrorResponse> {
+        let sql = "SELECT * FROM clients WHERE client_uri = $1";
+        let mut clients: Vec<Self> = if is_hiqlite() {
+            DB::hql()
+                .query_as(sql, params!(client_uri.to_string()))
+                .await?
+        } else {
+            DB::pg_query(sql, &[&client_uri], 1).await?
+        };
+
+        Ok((clients.len() == 1).then(|| clients.remove(0)))
+    }
+
     pub async fn find_maybe_ephemeral(id: String) -> Result<Self, ErrorResponse> {
         if !RauthyConfig::get().vars.ephemeral_clients.enable || Url::from_str(&id).is_err() {
             return Self::find(id).await;

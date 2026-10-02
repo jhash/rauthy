@@ -17,6 +17,7 @@ use rauthy_common::utils::real_ip_from_req;
 use rauthy_data::api_cookie::ApiCookie;
 use rauthy_data::email::email_registered_already::send_email_registered_already;
 use rauthy_data::entity::api_keys::{AccessGroup, AccessRights};
+use rauthy_data::entity::auth_providers::AuthProviderTemplate;
 use rauthy_data::entity::browser_id::BrowserId;
 use rauthy_data::entity::clients::Client;
 use rauthy_data::entity::clients_scim::ClientScim;
@@ -43,7 +44,9 @@ use rauthy_data::entity::webauthn::{PasskeyEntity, WebauthnAdditionalData, Webau
 use rauthy_data::entity::webids::WebId;
 use rauthy_data::events::event::Event;
 use rauthy_data::html::HtmlCached;
-use rauthy_data::html::templates::{Error3Html, ErrorHtml, UserRevokeHtml};
+use rauthy_data::html::templates::{
+    Error3Html, ErrorHtml, HtmlTemplate, UserRegisterHtml, UserRevokeHtml,
+};
 use rauthy_data::ipgeo;
 use rauthy_data::ipgeo::get_location;
 use rauthy_data::language::Language;
@@ -369,13 +372,31 @@ pub async fn get_user_picture_config(
     ),
 )]
 #[get("/users/register")]
-pub async fn get_users_register(req: HttpRequest) -> Result<HttpResponse, ErrorResponse> {
+pub async fn get_users_register(
+    req: HttpRequest,
+    Query(params): Query<RegisterPageParams>,
+) -> Result<HttpResponse, ErrorResponse> {
     if !RauthyConfig::get().vars.user_registration.enable {
         return Ok(HttpResponse::NotFound().finish());
     }
-    HtmlCached::UserRegistration
-        .handle(req, ThemeCssFull::find_theme_ts_rauthy().await?, true)
-        .await
+
+    let (client_id, theme_ts) =
+        ThemeCssFull::find_for_client_uri(params.redirect_uri.as_deref()).await?;
+    if client_id == "rauthy" {
+        return HtmlCached::UserRegistration
+            .handle(req, theme_ts, true)
+            .await;
+    }
+
+    let lang = Language::try_from(&req).unwrap_or_default();
+    let providers = AuthProviderTemplate::get_all_json_template().await?;
+    let body = UserRegisterHtml::build_for_client(
+        &lang,
+        &client_id,
+        theme_ts,
+        HtmlTemplate::AuthProviders(providers),
+    );
+    Ok(HttpResponse::Ok().insert_header(HEADER_HTML).body(body))
 }
 
 /// Creates a new user with almost all values set to default

@@ -45,7 +45,13 @@ pub async fn handle_get_pwd_reset<'a>(
             password_policy: PasswordPolicyResponse::from(password_policy),
             user_id,
         };
-        PwdResetHtml::build(&lang, ThemeCssFull::find_theme_ts_rauthy().await?, tpl)
+        let client_uri = match MagicLinkUsage::try_from(&ml.usage)? {
+            MagicLinkUsage::PasswordReset(uri) | MagicLinkUsage::NewUser(uri) => uri,
+            MagicLinkUsage::EmailChange(_) => None,
+        };
+        let (client_id, theme_ts) =
+            ThemeCssFull::find_for_client_uri(client_uri.as_deref()).await?;
+        PwdResetHtml::build(&lang, &client_id, theme_ts, tpl)
     };
 
     // generate a cookie value and save it to the magic link

@@ -184,6 +184,16 @@ ON CONFLICT DO NOTHING"#;
         used: false,
         usage: MagicLinkUsage::PasswordReset(None).to_string(),
     };
+    let ml_themed = MagicLink {
+        id: "ThemedResetLinkForClientThemeTests0123456789abcdefghijklmnopqrstu".to_string(),
+        user_id: "2PYV3STNz3MN7VnPjJVcPQap".to_string(),
+        csrf_token: "ThemedResetCsrfToken0123456789abcdefghijklmnop".to_string(),
+        cookie: None,
+        exp: Utc::now().add(chrono::Duration::days(1)).timestamp(),
+        used: false,
+        usage: MagicLinkUsage::PasswordReset(Some("https://themed.client.test/".to_string()))
+            .to_string(),
+    };
 
     let sql_1 = "UPDATE clients SET backchannel_logout_uri = $1 WHERE id = 'init_client'";
     let sql_2 = r#"
@@ -198,26 +208,30 @@ ON CONFLICT DO NOTHING"#;
             .execute(sql_1, params!(backchannel_logout_uri))
             .await?;
 
-        DB::hql()
-            .execute(
-                sql_2,
-                params!(ml.id, ml.user_id, ml.csrf_token, ml.exp, false, ml.usage),
-            )
-            .await?;
+        for ml in [ml, ml_themed] {
+            DB::hql()
+                .execute(
+                    sql_2,
+                    params!(ml.id, ml.user_id, ml.csrf_token, ml.exp, false, ml.usage),
+                )
+                .await?;
+        }
     } else {
         DB::pg_execute(sql_1, &[&backchannel_logout_uri]).await?;
-        DB::pg_execute(
-            sql_2,
-            &[
-                &ml.id,
-                &ml.user_id,
-                &ml.csrf_token,
-                &ml.exp,
-                &false,
-                &ml.usage,
-            ],
-        )
-        .await?;
+        for ml in [ml, ml_themed] {
+            DB::pg_execute(
+                sql_2,
+                &[
+                    &ml.id,
+                    &ml.user_id,
+                    &ml.csrf_token,
+                    &ml.exp,
+                    &false,
+                    &ml.usage,
+                ],
+            )
+            .await?;
+        }
     }
 
     // make sure `init_client` has `profile` as default scope to make user picture integration

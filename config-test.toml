@@ -70,6 +70,9 @@ http_workers = 1
 cert_path = 'tls/cert-chain.pem'
 key_path = 'tls/key.pem'
 
+[user_registration]
+enable = true
+
 [webauthn]
 rp_id = 'localhost'
 rp_origin = 'http://localhost:8081'

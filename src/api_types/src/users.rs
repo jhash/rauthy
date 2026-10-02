@@ -153,6 +153,11 @@ pub struct RequestResetRequest {
     pub pow: String,
 }
 
+#[derive(Deserialize)]
+pub struct RegisterPageParams {
+    pub redirect_uri: Option<String>,
+}
+
 #[derive(Deserialize, Validate, ToSchema)]
 #[cfg_attr(debug_assertions, derive(Serialize))]
 pub struct UpdateUserRequest {

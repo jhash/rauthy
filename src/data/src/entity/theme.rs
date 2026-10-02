@@ -1,4 +1,5 @@
 use crate::database::{Cache, DB};
+use crate::entity::clients::Client;
 use chrono::Utc;
 use hiqlite::macros::params;
 use rauthy_api_types::themes::ThemeRequestResponse;
@@ -183,6 +184,18 @@ impl ThemeCssFull {
     #[inline(always)]
     pub async fn find_theme_ts(client_id: String) -> Result<i64, ErrorResponse> {
         Ok(Self::find_with_default(client_id).await?.last_update)
+    }
+
+    pub async fn find_for_client_uri(
+        client_uri: Option<&str>,
+    ) -> Result<(String, i64), ErrorResponse> {
+        let client = match client_uri {
+            Some(uri) => Client::find_by_client_uri(uri).await?,
+            None => None,
+        };
+        let client_id = client.map(|c| c.id).unwrap_or_else(|| "rauthy".to_string());
+        let ts = Self::find_theme_ts(client_id.clone()).await?;
+        Ok((client_id, ts))
     }
 
     #[inline(always)]
