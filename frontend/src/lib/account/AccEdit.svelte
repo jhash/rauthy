@@ -16,7 +16,7 @@
     import { fetchDelete, fetchGet, fetchPut } from '$api/fetch';
     import InputDateTimeCombo from '$lib5/form/InputDateTimeCombo.svelte';
     import type { UserValuesConfig } from '$api/templates/UserValuesConfig';
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import TZSelect from '$lib/TZSelect.svelte';
     import PreferredUsername from '$lib/PreferredUsername.svelte';
 
@@ -24,10 +24,12 @@
         config,
         user = $bindable(),
         viewModePhone,
+        openDelete,
     }: {
         config: undefined | UserValuesConfig;
         user: UserResponse;
         viewModePhone?: boolean;
+        openDelete?: boolean;
     } = $props();
 
     if (!user.user_values.birthdate) {
@@ -49,6 +51,7 @@
     let canSelfDelete = $state(false);
     let showDeleteConfirm = $state(false);
     let deleteConfirmValue = $state('');
+    let deleteRef: undefined | HTMLDivElement = $state();
 
     onMount(() => {
         fetchSelfDeleteConfig();
@@ -63,6 +66,11 @@
     async function fetchSelfDeleteConfig() {
         let res = await fetchGet(`/auth/v1/users/${user.id}/self/delete`);
         canSelfDelete = res.status === 202;
+        if (canSelfDelete && openDelete) {
+            showDeleteConfirm = true;
+            await tick();
+            deleteRef?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     async function onSubmit(form: HTMLFormElement, params: URLSearchParams) {
@@ -289,7 +297,7 @@
     {/if}
 
     {#if showDeleteConfirm}
-        <div class="selfDelete">
+        <div class="selfDelete" bind:this={deleteRef}>
             <h5>{t.account.deleteAccount.deleteAccount}</h5>
             <p>
                 {t.account.deleteAccount.deleteAccountDesc}

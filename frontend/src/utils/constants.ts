@@ -12,6 +12,7 @@ export const LOGOUT_URL = '/auth/v1/oidc/logout';
 export const REDIRECT_URI = '/auth/v1/oidc/callback';
 export const REDIRECT_URI_SUCCESS = '/auth/v1/admin/users';
 export const REDIRECT_URI_SUCCESS_ACC = '/auth/v1/account';
+export const ACCOUNT_VIEWS = ['delete', 'devices'];
 export const POST_LOGOUT_REDIRECT_URI = '/auth/v1/';
 
 export const EVENT_LEVELS = ['info', 'notice', 'warning', 'critical'];

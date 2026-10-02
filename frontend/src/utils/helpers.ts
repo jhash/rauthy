@@ -10,6 +10,8 @@ import {
     POST_LOGOUT_REDIRECT_URI,
     PROVIDER_TOKEN,
     REDIRECT_URI,
+    REDIRECT_URI_SUCCESS_ACC,
+    ACCOUNT_VIEWS,
 } from './constants.js';
 import { decode, encode } from 'base64-arraybuffer';
 import type { PasswordPolicyResponse } from '$api/types/password_policy.ts';
@@ -35,6 +37,18 @@ export function isDefaultScope(name: string) {
         name === 'phone'
     );
 }
+
+export const accountLoginState = (): string => {
+    const view = new URLSearchParams(window.location.search).get('v');
+    return view && ACCOUNT_VIEWS.includes(view) ? `account-${view}` : 'account';
+};
+
+export const accountUrlForState = (state: string): string => {
+    const view = state.slice('account-'.length);
+    return ACCOUNT_VIEWS.includes(view)
+        ? `${REDIRECT_URI_SUCCESS_ACC}?v=${view}`
+        : REDIRECT_URI_SUCCESS_ACC;
+};
 
 export const redirectToLogin = (state?: string) => {
     generatePKCE().then(pkce => {
