@@ -15,6 +15,7 @@ use crate::entity::sessions::Session;
 use crate::entity::theme::ThemeCssFull;
 use crate::entity::tos::ToS;
 use crate::entity::tos_user_accept::ToSUserAccept;
+use crate::entity::user_federations::UserFederation;
 use crate::entity::users_values::UserValues;
 use crate::entity::webauthn::{PasskeyEntity, WebauthnServiceReq};
 use crate::events::event::Event;
@@ -390,6 +391,10 @@ impl User {
         auth_provider_id: &str,
         federation_uid: &str,
     ) -> Result<Self, ErrorResponse> {
+        if let Some(link) = UserFederation::find(auth_provider_id, federation_uid).await? {
+            return Self::find(link.user_id).await;
+        }
+
         let sql = "SELECT * FROM users WHERE auth_provider_id = $1 AND federation_uid = $2";
         let slf = if is_hiqlite() {
             DB::hql()
@@ -799,22 +804,74 @@ LIMIT $2"#;
     }
 
     pub async fn provider_unlink(user_id: String) -> Result<Self, ErrorResponse> {
-        // we need to find the user first and validate that it has been set up properly
-        // to work without a provider
+        let slf = Self::find(user_id).await?;
+        match slf.auth_provider_id.clone() {
+            Some(provider_id) => Self::provider_unlink_one(slf.id, &provider_id).await,
+            None => Ok(slf),
+        }
+    }
+
+    pub async fn provider_unlink_one(
+        user_id: String,
+        provider_id: &str,
+    ) -> Result<Self, ErrorResponse> {
         let mut slf = Self::find(user_id).await?;
-        if slf.password.is_none() && !slf.has_webauthn_enabled() {
+        let is_primary = slf.auth_provider_id.as_deref() == Some(provider_id);
+        let links = UserFederation::find_for_user(&slf.id).await?;
+        let is_linked = is_primary || links.iter().any(|l| l.provider_id == provider_id);
+        if !is_linked {
             return Err(ErrorResponse::new(
-                ErrorResponseType::BadRequest,
-                "You must have at least a password or passkey set up before you can \
-                remove a provider link",
+                ErrorResponseType::NotFound,
+                "The account is not linked to this provider",
             ));
         }
 
-        slf.auth_provider_id = None;
-        slf.federation_uid = None;
-        slf.save(None).await?;
+        let remaining = links
+            .into_iter()
+            .filter(|l| l.provider_id != provider_id)
+            .collect::<Vec<_>>();
+        if slf.password.is_none() && !slf.has_webauthn_enabled() && remaining.is_empty() {
+            return Err(ErrorResponse::new(
+                ErrorResponseType::BadRequest,
+                "You must have at least a password, a passkey or another provider link set up \
+                before you can remove a provider link",
+            ));
+        }
+
+        UserFederation::delete(&slf.id, provider_id).await?;
+        if is_primary {
+            let next = remaining.into_iter().next();
+            slf.auth_provider_id = next.as_ref().map(|l| l.provider_id.clone());
+            slf.federation_uid = next.map(|l| l.federation_uid);
+            slf.save(None).await?;
+        }
 
         Ok(slf)
+    }
+
+    pub async fn is_linked_to(
+        &self,
+        provider_id: &str,
+        federation_uid: &str,
+    ) -> Result<bool, ErrorResponse> {
+        if self.auth_provider_id.as_deref() == Some(provider_id)
+            && self.federation_uid.as_deref() == Some(federation_uid)
+        {
+            return Ok(true);
+        }
+        Ok(UserFederation::find(provider_id, federation_uid)
+            .await?
+            .is_some_and(|l| l.user_id == self.id))
+    }
+
+    pub async fn has_link_to_provider(&self, provider_id: &str) -> Result<bool, ErrorResponse> {
+        if self.auth_provider_id.as_deref() == Some(provider_id) {
+            return Ok(true);
+        }
+        Ok(UserFederation::find_for_user(&self.id)
+            .await?
+            .iter()
+            .any(|l| l.provider_id == provider_id))
     }
 
     /// Appends multiple necessary transaction queries to update a user to the given `Vec<_>`.

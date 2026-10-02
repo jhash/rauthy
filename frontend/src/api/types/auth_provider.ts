@@ -54,6 +54,12 @@ export interface ProviderCallbackRequest {
     iss_atproto?: string;
 }
 
+export interface ProviderLinkResponse {
+    provider_id: string;
+    federation_uid: string;
+    created: number;
+}
+
 export interface ProviderLoginRequest {
     // values for the downstream client
     /// Validation: `email`
