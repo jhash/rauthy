@@ -272,12 +272,22 @@ impl ThemeCssFull {
         client_uri: Option<&str>,
     ) -> Result<(String, i64), ErrorResponse> {
         let client = match client_uri {
-            Some(uri) => Client::find_by_client_uri(uri).await?,
+            Some(uri) => match Self::authorize_client_id(uri) {
+                Some(id) => Client::find(id.to_string()).await.ok(),
+                None => Client::find_by_client_uri(uri).await?,
+            },
             None => None,
         };
         let client_id = client.map(|c| c.id).unwrap_or_else(|| "rauthy".to_string());
         let ts = Self::find_theme_ts(client_id.clone()).await?;
         Ok((client_id, ts))
+    }
+
+    fn authorize_client_id(uri: &str) -> Option<&str> {
+        let authorize = format!("{}oidc/authorize?", RauthyConfig::get().issuer);
+        uri.strip_prefix(&authorize)?
+            .split('&')
+            .find_map(|kv| kv.strip_prefix("client_id="))
     }
 
     #[inline(always)]

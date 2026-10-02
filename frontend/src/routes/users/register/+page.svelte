@@ -212,6 +212,10 @@
         }
     }
 
+    function isAuthorizeUrl(uri: string): boolean {
+        return uri.startsWith(`${window.location.origin}/auth/v1/oidc/authorize?`);
+    }
+
     async function submitRegistration() {
         isLoading = true;
 
@@ -233,7 +237,7 @@
         } else {
             err = '';
             success = true;
-            if (redirectUri) {
+            if (!values.redirect_uri || !isAuthorizeUrl(values.redirect_uri)) {
                 setTimeout(() => {
                     window.location.replace(values.redirect_uri || '/auth/v1/account');
                 }, 3000);

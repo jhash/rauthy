@@ -215,6 +215,14 @@ pub struct AuthRequest {
     pub resource: Option<String>,
 }
 
+impl AuthRequest {
+    pub fn is_prompt(&self, value: &str) -> bool {
+        self.prompt
+            .as_deref()
+            .is_some_and(|p| p.split_whitespace().any(|v| v == value))
+    }
+}
+
 #[inline]
 fn default_scope() -> String {
     String::from("openid")

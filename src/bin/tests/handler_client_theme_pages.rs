@@ -95,6 +95,13 @@ async fn test_register_and_reset_pages_use_the_client_theme() -> Result<(), Box<
     let html = page(&format!("/users/register?redirect_uri={THEMED_CLIENT_URI}")).await?;
     assert_eq!(theme_client(&html), THEMED_CLIENT);
 
+    let authorize = format!(
+        "{}/oidc/authorize%3Fclient_id%3D{THEMED_CLIENT}%26redirect_uri%3D{THEMED_CLIENT_URI}callback",
+        get_backend_url().replace(':', "%3A").replace('/', "%2F")
+    );
+    let html = page(&format!("/users/register?redirect_uri={authorize}")).await?;
+    assert_eq!(theme_client(&html), THEMED_CLIENT);
+
     let html = page(&format!(
         "/users/{THEMED_RESET_USER}/reset/{THEMED_RESET_LINK}?type=password_reset"
     ))

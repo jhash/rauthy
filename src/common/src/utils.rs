@@ -45,6 +45,18 @@ pub fn get_rand_between(lower: u64, upper: u64) -> u64 {
 }
 
 #[inline(always)]
+pub fn url_encode(input: &str) -> String {
+    let mut out = String::with_capacity(input.len() * 3 / 2);
+    for b in input.bytes() {
+        if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'.' | b'_' | b'~') {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
+}
+
 pub fn base64_encode(input: &[u8]) -> String {
     B64_STD.encode(input)
 }
