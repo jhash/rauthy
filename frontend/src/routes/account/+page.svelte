@@ -1,6 +1,6 @@
 <script lang="ts">
     import AccMain from '$lib5/account/AccMain.svelte';
-    import { redirectToLogin } from '$utils/helpers';
+    import { accountLoginState, redirectToLogin } from '$utils/helpers';
     import Main from '$lib5/Main.svelte';
     import ContentCenter from '$lib5/ContentCenter.svelte';
     import { useI18n } from '$state/i18n.svelte';
@@ -35,7 +35,7 @@
             if (res[0].body) {
                 user = res[0].body;
             } else {
-                redirectToLogin('account');
+                redirectToLogin(accountLoginState());
             }
 
             if (res[1].body) {

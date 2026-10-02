@@ -59,6 +59,7 @@
 
     let pamUser: undefined | PamUserResponse = $state();
 
+    const initialView = useParam('v').get();
     let selected = $state(t.account.navInfo);
     let tabsWide = $derived.by(() => {
         let tabs = [];
@@ -80,14 +81,14 @@
 
     onMount(() => {
         fetchPamUser();
-
-        if (useParam('v').get() === 'devices') {
-            selected = t.account.devices;
-        }
     });
 
     $effect(() => {
-        if (viewModePhone || viewModeWideCompact) {
+        if (initialView === 'delete') {
+            selected = t.account.navEdit;
+        } else if (initialView === 'devices') {
+            selected = t.account.devices;
+        } else if (viewModePhone || viewModeWideCompact) {
             selected = t.account.navInfo;
         } else if (pamUser) {
             selected = 'PAM';
@@ -185,7 +186,12 @@
                 {:else if selected === 'PAM' && pamUser}
                     <AccPAM bind:pamUser />
                 {:else if selected === t.account.navEdit}
-                    <AccEdit {config} bind:user viewModePhone />
+                    <AccEdit
+                        {config}
+                        bind:user
+                        viewModePhone
+                        openDelete={initialView === 'delete'}
+                    />
                 {:else if selected === t.common.password}
                     <AccPassword {user} {authProvider} viewModePhone />
                 {:else if selected === t.account.navMfa}
@@ -224,7 +230,7 @@
                     {:else if selected === 'PAM' && pamUser}
                         <AccPAM bind:pamUser />
                     {:else if selected === t.account.navEdit}
-                        <AccEdit {config} bind:user />
+                        <AccEdit {config} bind:user openDelete={initialView === 'delete'} />
                     {:else if selected === t.common.password}
                         <AccPassword {user} {authProvider} />
                     {:else if selected === t.account.navMfa}

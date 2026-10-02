@@ -2,10 +2,11 @@
     import {
         deleteVerifierFromStorage,
         getVerifierFromStorage,
+        accountUrlForState,
         saveCsrfToken,
     } from '$utils/helpers.js';
     import { onMount } from 'svelte';
-    import { CLIENT_ID, REDIRECT_URI_SUCCESS, REDIRECT_URI_SUCCESS_ACC } from '$utils/constants.js';
+    import { CLIENT_ID, REDIRECT_URI_SUCCESS } from '$utils/constants.js';
     import { useParam } from '$state/param.svelte';
 
     let err = $state('');
@@ -68,8 +69,8 @@
             let redirectTo = window.location.origin + REDIRECT_URI_SUCCESS;
             let state = pState.get();
             if (state) {
-                if (state === 'account') {
-                    redirectTo = window.location.origin + REDIRECT_URI_SUCCESS_ACC;
+                if (state === 'account' || state.startsWith('account-')) {
+                    redirectTo = window.location.origin + accountUrlForState(state);
                 } else if (state.startsWith('device')) {
                     redirectTo = `${window.location.origin}/auth/v1/${state}`;
                 }

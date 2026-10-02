@@ -1,6 +1,6 @@
 import { fetchGet } from '$api/fetch';
 import type { SessionInfoResponse } from '$api/types/session';
-import { isBrowser, redirectToLogin } from '$utils/helpers';
+import { accountLoginState, isBrowser, redirectToLogin } from '$utils/helpers';
 
 // Delegated group-admin role grammar. A role named exactly `rauthy_admin`
 // is a full Rauthy admin. A role `rauthy_admin:<prefix>` makes the holder a group admin:
@@ -72,7 +72,9 @@ export function useSession(redirectState: 'admin' | 'account') {
         fetchGet<SessionInfoResponse>('/auth/v1/oidc/sessioninfo', 'json', 'noRedirect').then(
             res => {
                 if (res.status === 401) {
-                    redirectToLogin(redirectState);
+                    redirectToLogin(
+                        redirectState === 'account' ? accountLoginState() : redirectState,
+                    );
                 }
                 _session = res.body;
                 // TODO should we maybe start an interval for keep-alive?
