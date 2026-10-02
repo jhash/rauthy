@@ -35,7 +35,7 @@ use rauthy_data::entity::jwk::{JWKS, JWKSPublicKey, JwkKeyPair, JwkKeyPairType};
 use rauthy_data::entity::logos::LogoRes;
 use rauthy_data::entity::logos::{Logo, LogoType};
 use rauthy_data::entity::pow::PowEntity;
-use rauthy_data::entity::sessions::Session;
+use rauthy_data::entity::sessions::{Session, SessionState as SessionStateEntity};
 use rauthy_data::entity::theme::ThemeCssFull;
 use rauthy_data::entity::users::User;
 use rauthy_data::entity::webauthn::WebauthnCookie;
@@ -208,22 +208,12 @@ pub async fn get_authorize(
         let body = AuthorizeHtml::build(&lang, &client.id, theme_ts, &templates);
         build_authorize_resp(accept_encoding, body, None, origin_header, browser_id)
     } else {
-        // check if we can re-use a still valid session or need to create a new one
-        let session = if principal.session.is_some() {
-            if principal.validate_session_auth_or_init().is_ok() {
-                #[allow(clippy::unnecessary_unwrap)]
-                principal.session.unwrap()
-            } else {
-                Session::new(
-                    RauthyConfig::get().vars.lifetimes.session_lifetime,
-                    Some(real_ip_from_req(&req)?),
-                )
-            }
-        } else {
-            Session::new(
+        let session = match principal.session.as_ref() {
+            Some(session) if session.state()? == SessionStateEntity::Init => session.clone(),
+            _ => Session::new(
                 RauthyConfig::get().vars.lifetimes.session_lifetime,
                 Some(real_ip_from_req(&req)?),
-            )
+            ),
         };
 
         if let Err(err) = session.upsert().await {

@@ -219,6 +219,13 @@ pub(crate) async fn finish_authorize(
     user_needs_mfa: Option<&mut bool>,
     provider_mfa_login: Option<ProviderMfaLogin>,
 ) -> Result<AuthStep, ErrorResponse> {
+    if session.user_id.as_ref().is_some_and(|id| id != &user.id) {
+        return Err(ErrorResponse::new(
+            ErrorResponseType::Forbidden,
+            "The session belongs to another user",
+        ));
+    }
+
     client.validate_enabled()?;
     client
         .validate_mfa(&user, provider_mfa_login)
