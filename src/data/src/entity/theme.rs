@@ -1,4 +1,5 @@
 use crate::database::{Cache, DB};
+use crate::rauthy_config::RauthyConfig;
 use chrono::Utc;
 use hiqlite::macros::params;
 use rauthy_api_types::themes::ThemeRequestResponse;
@@ -6,14 +7,94 @@ use rauthy_common::compression::{compress_br, compress_gzip};
 use rauthy_common::constants::BUILD_TIME;
 use rauthy_common::is_hiqlite;
 use rauthy_common::utils::{deserialize, serialize};
-use rauthy_error::ErrorResponse;
+use rauthy_error::{ErrorResponse, ErrorResponseType};
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
-use tracing::error;
+use std::path::PathBuf;
+use std::sync::LazyLock;
+use std::time::UNIX_EPOCH;
+use tracing::{error, warn};
 
 // used for possible future struct updates to be able to deserialize old themes properly
 static LATEST_CSS_VERSION: i32 = 1;
 static CACHE_KEY_EMAIL_CSS: &str = "css_rauthy_light_email";
+static CUSTOM_THEME: LazyLock<Option<CustomTheme>> = LazyLock::new(CustomTheme::load);
+
+const CUSTOM_CSS_FILE: &str = "custom.css";
+const ASSET_TYPES: [(&str, &str); 8] = [
+    ("css", "text/css"),
+    ("woff2", "font/woff2"),
+    ("woff", "font/woff"),
+    ("ttf", "font/ttf"),
+    ("otf", "font/otf"),
+    ("svg", "image/svg+xml"),
+    ("png", "image/png"),
+    ("webp", "image/webp"),
+];
+
+#[derive(Debug)]
+pub struct CustomTheme {
+    dir: PathBuf,
+    css: String,
+    modified: i64,
+}
+
+impl CustomTheme {
+    fn load() -> Option<Self> {
+        let dir = PathBuf::from(RauthyConfig::get().vars.theme.custom_dir.as_deref()?);
+        let path = dir.join(CUSTOM_CSS_FILE);
+        let (css, modified) = match std::fs::read_to_string(&path) {
+            Ok(css) => {
+                let modified = std::fs::metadata(&path)
+                    .and_then(|m| m.modified())
+                    .ok()
+                    .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+                    .map(|d| d.as_secs() as i64)
+                    .unwrap_or_default();
+                (css, modified)
+            }
+            Err(err) => {
+                warn!("No custom theme CSS at {}: {err}", path.display());
+                (String::default(), 0)
+            }
+        };
+
+        Some(Self { dir, css, modified })
+    }
+
+    pub fn get() -> Option<&'static Self> {
+        CUSTOM_THEME.as_ref()
+    }
+
+    fn modified() -> i64 {
+        Self::get().map(|c| c.modified).unwrap_or_default()
+    }
+
+    pub fn content_type(name: &str) -> Option<&'static str> {
+        let is_plain_name = !name.starts_with('.')
+            && name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_');
+        if !is_plain_name {
+            return None;
+        }
+        let (_, ext) = name.rsplit_once('.')?;
+        ASSET_TYPES
+            .iter()
+            .find(|(e, _)| *e == ext)
+            .map(|(_, content_type)| *content_type)
+    }
+
+    pub async fn read_asset(name: &str) -> Result<(Vec<u8>, &'static str), ErrorResponse> {
+        let not_found = || ErrorResponse::new(ErrorResponseType::NotFound, "theme asset not found");
+        let slf = Self::get().ok_or_else(not_found)?;
+        let content_type = Self::content_type(name).ok_or_else(not_found)?;
+        let bytes = tokio::fs::read(slf.dir.join(name))
+            .await
+            .map_err(|_| not_found())?;
+        Ok((bytes, content_type))
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ThemeCssFull {
@@ -182,14 +263,13 @@ impl ThemeCssFull {
     /// the latest TS for the `Rauthy` theme is returned.
     #[inline(always)]
     pub async fn find_theme_ts(client_id: String) -> Result<i64, ErrorResponse> {
-        Ok(Self::find_with_default(client_id).await?.last_update)
+        let last_update = Self::find_with_default(client_id).await?.last_update;
+        Ok(last_update.max(CustomTheme::modified()))
     }
 
     #[inline(always)]
     pub async fn find_theme_ts_rauthy() -> Result<i64, ErrorResponse> {
-        Ok(Self::find_with_default("rauthy".to_string())
-            .await?
-            .last_update)
+        Self::find_theme_ts("rauthy".to_string()).await
     }
 
     pub async fn delete(client_id: String) -> Result<(), ErrorResponse> {
@@ -268,7 +348,10 @@ impl ThemeCssFull {
 
     pub async fn plain(client_id: String) -> Result<String, ErrorResponse> {
         let slf = Self::find_with_fallback(client_id).await?;
-        let res = slf.as_css()?;
+        let mut res = slf.as_css()?;
+        if let Some(custom) = CustomTheme::get() {
+            res.push_str(&custom.css);
+        }
         Ok(res)
     }
 
@@ -495,5 +578,21 @@ mod tests {
     fn test_css_fmt() {
         let theme = ThemeCssFull::default();
         theme.as_css().unwrap();
+    }
+
+    #[test]
+    fn test_custom_asset_content_types() {
+        assert_eq!(
+            CustomTheme::content_type("Lora-Variable.woff2"),
+            Some("font/woff2")
+        );
+        assert_eq!(CustomTheme::content_type("custom.css"), Some("text/css"));
+        assert_eq!(CustomTheme::content_type("logo.svg"), Some("image/svg+xml"));
+        assert_eq!(CustomTheme::content_type("script.js"), None);
+        assert_eq!(CustomTheme::content_type("../secrets.toml"), None);
+        assert_eq!(CustomTheme::content_type("..woff2"), None);
+        assert_eq!(CustomTheme::content_type(".hidden.css"), None);
+        assert_eq!(CustomTheme::content_type("a/b.css"), None);
+        assert_eq!(CustomTheme::content_type("noext"), None);
     }
 }

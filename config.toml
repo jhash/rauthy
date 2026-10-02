@@ -2524,6 +2524,17 @@ footer = ''
 # `email_registered_already`
 button_text_request_new = ''
 
+[theme]
+
+# A directory with operator-provided theme files. Its `custom.css` is
+# appended to every theme stylesheet, after the colour variables, and
+# every file in it is served at `/auth/v1/theme_assets/{file}`, for
+# example fonts for a `@font-face` in `custom.css`.
+#
+# default: not set
+# overwritten by: THEME_CUSTOM_DIR
+#custom_dir = "theme"
+
 [tls]
 ## UI + API TLS
 

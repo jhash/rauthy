@@ -7,7 +7,7 @@ use actix_web::{HttpRequest, HttpResponse, delete, get, post, put, web};
 use rauthy_api_types::themes::ThemeRequestResponse;
 use rauthy_data::entity::api_keys::{AccessGroup, AccessRights};
 use rauthy_data::entity::clients::Client;
-use rauthy_data::entity::theme::ThemeCssFull;
+use rauthy_data::entity::theme::{CustomTheme, ThemeCssFull};
 use rauthy_error::{ErrorResponse, ErrorResponseType};
 
 /// Get the theme for the given `client_id`.
@@ -52,6 +52,25 @@ pub async fn get_theme(
         .insert_header((CACHE_CONTROL, "max-age=31104000, public"))
         // .insert_header((ETAG, etag))
         .body(body))
+}
+
+/// Get a file from the operator-provided `theme.custom_dir`.
+#[utoipa::path(
+    get,
+    path = "/theme_assets/{name}",
+    tag = "clients",
+    responses(
+        (status = 200, description = "Ok"),
+        (status = 404, description = "NotFound", body = ErrorResponse),
+    ),
+)]
+#[get("/theme_assets/{name}")]
+pub async fn get_theme_asset(name: web::Path<String>) -> Result<HttpResponse, ErrorResponse> {
+    let (bytes, content_type) = CustomTheme::read_asset(&name).await?;
+    Ok(HttpResponse::Ok()
+        .insert_header((CONTENT_TYPE, content_type))
+        .insert_header((CACHE_CONTROL, "max-age=86400, public"))
+        .body(bytes))
 }
 
 /// Get the theme as a JSON object for the Admin UI for the given `client_id`.
