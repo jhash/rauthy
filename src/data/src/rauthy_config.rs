@@ -281,6 +281,7 @@ pub struct Vars {
     pub server: VarsServer,
     pub suspicious_requests: VarsSuspiciousRequests,
     pub templates: VarsTemplates,
+    pub theme: VarsTheme,
     pub tls: VarsTls,
     pub tos: VarsToS,
     pub user_delete: VarsUserDelete,
@@ -1029,6 +1030,7 @@ Your account has not been compromised and no data was leaked."#.into()),
                 key_path: None,
                 generate_self_signed: false,
             },
+            theme: VarsTheme { custom_dir: None },
             tos: VarsToS {
                 accept_timeout: 900,
             },
@@ -1162,6 +1164,7 @@ impl Vars {
         slf.parse_server(&mut table);
         slf.parse_suspicious_requests(&mut table);
         slf.parse_templates(&mut table);
+        slf.parse_theme(&mut table);
         slf.parse_tls(&mut table);
         slf.parse_tos(&mut table);
         slf.parse_user_delete(&mut table);
@@ -3294,6 +3297,16 @@ impl Vars {
         check_table_empty(table, "tls");
     }
 
+    fn parse_theme(&mut self, table: &mut toml::Table) {
+        let mut table = t_table(table, "theme");
+
+        if let Some(v) = t_str(&mut table, "theme", "custom_dir", "THEME_CUSTOM_DIR") {
+            self.theme.custom_dir = Some(v);
+        }
+
+        check_table_empty(table, "theme");
+    }
+
     fn parse_tos(&mut self, table: &mut toml::Table) {
         let mut table = t_table(table, "tos");
 
@@ -4068,6 +4081,11 @@ pub struct VarsTls {
     pub cert_path: Option<String>,
     pub key_path: Option<String>,
     pub generate_self_signed: bool,
+}
+
+#[derive(Debug)]
+pub struct VarsTheme {
+    pub custom_dir: Option<String>,
 }
 
 #[derive(Debug)]

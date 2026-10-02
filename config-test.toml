@@ -66,6 +66,9 @@ pub_url = 'localhost:8081'
 scheme = 'http'
 http_workers = 1
 
+[theme]
+custom_dir = "src/bin/tests/theme_custom"
+
 [tls]
 cert_path = 'tls/cert-chain.pem'
 key_path = 'tls/key.pem'

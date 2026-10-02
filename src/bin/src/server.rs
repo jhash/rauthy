@@ -692,6 +692,7 @@ fn api_services() -> actix_web::Scope {
                 .service(generic::post_migrate_enc_key)
                 .service(generic::ping)
                 .service(themes::get_theme)
+                .service(themes::get_theme_asset)
                 .service(themes::post_theme)
                 .service(themes::put_theme)
                 .service(themes::delete_theme)

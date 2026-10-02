@@ -193,6 +193,7 @@ use utoipa::{OpenApi, openapi};
         sessions::delete_sessions_for_user,
 
         themes::get_theme,
+        themes::get_theme_asset,
         themes::put_theme,
         themes::delete_theme,
 

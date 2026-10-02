@@ -34,6 +34,7 @@ const config = {
                 'script-src': ['self', 'wasm-unsafe-eval'],
                 'style-src': ['self', 'unsafe-inline'],
                 'img-src': ['self'],
+                'font-src': ['self'],
             },
         },
         env: {
