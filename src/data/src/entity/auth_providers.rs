@@ -340,7 +340,7 @@ VALUES
         if is_hiqlite() {
             DB::hql().execute(sql, params!(id)).await?;
         } else {
-            DB::pg_execute(sql, &[]).await?;
+            DB::pg_execute(sql, &[&id]).await?;
         }
 
         Self::invalidate_cache_all().await?;
