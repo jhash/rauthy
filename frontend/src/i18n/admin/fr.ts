@@ -41,8 +41,10 @@ export let I18nAdminFr: I18nAdmin = {
         size: 'Taille',
     },
     clients: {
+        allowedProviders: 'Fournisseurs de connexion autorisés',
         allowedResources: 'Ressources autorisées',
         defaultAud: 'Audiences par défaut',
+        descAllowedProviders: `Fournisseurs externes affichés sur la page de connexion de ce client et acceptés pour ses connexions. Sans sélection, tous les fournisseurs actifs sont autorisés.`,
         descAllowedResources: `Indicateurs de ressources RFC 8707 optionnels que ce client peut demander. Une liste vide rejette tout paramètre 'resource' avec 'invalid_target'.`,
         descDefaultAud: `Audiences toujours ajoutées aux jetons de ce client, indépendamment de tout paramètre 'resource'.`,
         backchannelLogout:

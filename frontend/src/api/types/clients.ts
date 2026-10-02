@@ -72,6 +72,7 @@ export interface UpdateClientRequest {
     claims_at_root?: boolean;
     /// RFC 8707 allow-list of resource indicators this client may request.
     /// Validation: PATTERN_URI
+    allowed_providers?: string[];
     allowed_resources?: string[];
     /// Audiences always added to this client's tokens, independent of any request.
     /// Validation: PATTERN_URI
@@ -109,6 +110,7 @@ export interface ClientResponse {
     claims_at_root: boolean;
     allowed_resources?: string[];
     default_aud?: string[];
+    allowed_providers?: string[];
     scim?: ScimClientRequestResponse;
 }
 

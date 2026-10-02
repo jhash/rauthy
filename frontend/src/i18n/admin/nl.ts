@@ -40,8 +40,10 @@ export let I18nAdminNl: I18nAdmin = {
         size: 'Grootte',
     },
     clients: {
+        allowedProviders: 'Toegestane loginproviders',
         allowedResources: 'Toegestane resources',
         defaultAud: 'Standaard audiences',
+        descAllowedProviders: `Upstream-providers die op de loginpagina van deze client worden getoond en voor de logins worden geaccepteerd. Zonder selectie zijn alle actieve providers toegestaan.`,
         descAllowedResources: `Optionele RFC 8707 resource-indicatoren die deze client mag opvragen. Een lege lijst weigert elke 'resource'-parameter met 'invalid_target'.`,
         descDefaultAud: `Audiences die altijd aan de tokens van deze client worden toegevoegd, onafhankelijk van een 'resource'-parameter.`,
         backchannelLogout:

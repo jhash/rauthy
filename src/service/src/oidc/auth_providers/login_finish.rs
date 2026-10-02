@@ -71,6 +71,8 @@ pub async fn login_finish<'a>(
 
     // request is valid -> fetch token for the user
     let provider = AuthProvider::find(&slf.provider_id).await?;
+    let client = Client::find_maybe_ephemeral(slf.req_client_id.clone()).await?;
+    client.validate_provider_allowed(&provider.id)?;
 
     // extract a possibly existing provider link cookie for
     // linking an existing account to a provider
@@ -106,7 +108,6 @@ pub async fn login_finish<'a>(
         .set_mfa(provider_mfa_login == ProviderMfaLogin::Yes || require_webauthn)
         .await?;
 
-    let client = Client::find_maybe_ephemeral(slf.req_client_id).await?;
     let header_origin = client.get_validated_origin_header(req)?;
 
     let auth_step = oidc::authorize::finish_authorize(

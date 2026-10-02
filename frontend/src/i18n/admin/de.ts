@@ -40,8 +40,10 @@ export let I18nAdminDe: I18nAdmin = {
         size: 'Größe',
     },
     clients: {
+        allowedProviders: 'Erlaubte Login-Provider',
         allowedResources: 'Erlaubte Ressourcen',
         defaultAud: 'Standard-Audiences',
+        descAllowedProviders: `Upstream-Provider, die auf der Login-Seite dieses Clients angezeigt und für seine Logins akzeptiert werden. Ohne Auswahl sind alle aktiven Provider erlaubt.`,
         descAllowedResources: `Optionale RFC 8707 Resource Indicators, die dieser Client anfordern darf. Eine leere Liste lehnt jeden 'resource'-Parameter mit 'invalid_target' ab.`,
         descDefaultAud: `Audiences, die immer zu den Tokens dieses Clients hinzugefügt werden, unabhängig von einem 'resource'-Parameter.`,
         backchannelLogout:

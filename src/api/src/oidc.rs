@@ -172,7 +172,15 @@ pub async fn get_authorize(
             .finish());
     }
 
-    let auth_providers_json = AuthProviderTemplate::get_all_json_template().await?;
+    let auth_providers_json = AuthProviderTemplate::get_json_template_for_client(&client).await?;
+    let atproto_id = if RauthyConfig::get().vars.atproto.enable {
+        let provider_atproto = AuthProvider::find_by_iss(PROVIDER_ATPROTO.to_string()).await?;
+        client
+            .allows_provider(&provider_atproto.id)
+            .then_some(provider_atproto.id)
+    } else {
+        None
+    };
     let logo_updated = Logo::find_updated(&client.id, &LogoType::Client).await?;
     let favicon_updated =
         Logo::find_updated_with_res(&client.id, LogoRes::Favicon, &LogoType::Client).await?;
@@ -188,9 +196,8 @@ pub async fn get_authorize(
     templates.push(HtmlTemplate::IsRegOpen(
         RauthyConfig::get().vars.user_registration.enable,
     ));
-    if RauthyConfig::get().vars.atproto.enable {
-        let provider_atproto = AuthProvider::find_by_iss(PROVIDER_ATPROTO.to_string()).await?;
-        templates.push(HtmlTemplate::AtprotoId(provider_atproto.id));
+    if let Some(id) = atproto_id {
+        templates.push(HtmlTemplate::AtprotoId(id));
     }
 
     // if the user is still authenticated and everything is valid -> immediate refresh
