@@ -38,8 +38,10 @@
     import { generateNonce, generatePKCE } from '$utils/pkce';
     import type { ProviderLoginRequest } from '$api/types/auth_provider';
     import { execProviderLogin } from '$utils/login';
-    import { genKey, saveCsrfToken } from '$utils/helpers';
+    import { fetchTimezones, genKey, saveCsrfToken } from '$utils/helpers';
     import type { SessionInfoResponse } from '$api/types/session';
+    import { onMount } from 'svelte';
+    import { ownAuthorizeUrl, providerLoginForAuthorize, signInHref } from '$utils/signup';
 
     let t = useI18n();
 
@@ -59,10 +61,28 @@
     let usernameExists = $state(false);
 
     let values: NewUserRegistrationRequest = $state({
-        email: '',
+        email: useParam('login_hint').get() || '',
         pow: '',
     });
     let valuesActive = $state(1);
+    let askTz = $state(false);
+    let authorize: undefined | URL = $state();
+
+    onMount(() => {
+        if (!IS_DEV && !document.getElementById(TPL_USER_VALUES_CONFIG)) {
+            reloadOnce();
+            return;
+        }
+        authorize = ownAuthorizeUrl(redirectUri.get());
+    });
+
+    function reloadOnce() {
+        const key = 'register_reloaded';
+        if (sessionStorage.getItem(key) !== window.location.href) {
+            sessionStorage.setItem(key, window.location.href);
+            window.location.reload();
+        }
+    }
 
     let action = $derived(IS_DEV ? '/auth/v1/dev/register' : '/auth/v1/users/register');
 
@@ -92,8 +112,11 @@
                 uv.birthdate = '';
                 active += 1;
             }
+            askTz = config.tz === 'required';
             if (config.tz !== 'hidden') {
                 uv.tz = 'UTC';
+            }
+            if (askTz) {
                 active += 1;
             }
             if (config.street === 'required') {
@@ -152,6 +175,17 @@
     }
 
     async function providerLogin(id: string) {
+        if (authorize) {
+            let payload = providerLoginForAuthorize(authorize, id);
+            if (payload) {
+                isLoading = true;
+                await createSession();
+                err = (await execProviderLogin(payload)) || '';
+                isLoading = false;
+                return;
+            }
+        }
+
         let pkce = await generatePKCE();
         if (!pkce) {
             return;
@@ -216,9 +250,18 @@
         return uri.startsWith(`${window.location.origin}/auth/v1/oidc/authorize?`);
     }
 
+    async function localTimezone(): Promise<string> {
+        const local = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const known = await fetchTimezones();
+        return local && known.includes(local) ? local : 'UTC';
+    }
+
     async function submitRegistration() {
         isLoading = true;
 
+        if (!askTz && values.user_values?.tz !== undefined) {
+            values.user_values.tz = await localTimezone();
+        }
         values.pow = (await fetchSolvePow()) || '';
         values.redirect_uri = redirectUri.get();
 
@@ -326,7 +369,7 @@
                             withDelete
                         />
                     {/if}
-                    {#if values.user_values?.tz !== undefined && values.user_values?.tz != null}
+                    {#if askTz && values.user_values?.tz !== undefined && values.user_values?.tz != null}
                         <TZSelect bind:value={values.user_values.tz} />
                     {/if}
 
@@ -395,6 +438,15 @@
                 <div class="submit">
                     <Button type="submit" {isLoading}>{t.register.register}</Button>
                 </div>
+                {#if authorize}
+                    <a
+                        class="signIn"
+                        href={signInHref(authorize, values.email)}
+                        data-sveltekit-reload
+                    >
+                        {t.authorize.login}
+                    </a>
+                {/if}
                 {#if success}
                     <div class="success">
                         {t.register.success}<br />
@@ -495,6 +547,11 @@
 
     .submit {
         margin-top: 1rem;
+    }
+
+    .signIn {
+        display: block;
+        margin-top: 0.75rem;
     }
 
     @media (min-width: 35rem) {
