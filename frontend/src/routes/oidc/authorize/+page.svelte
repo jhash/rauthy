@@ -47,6 +47,7 @@
     import { execProviderLogin } from '$utils/login';
     import Modal from '$lib/Modal.svelte';
     import Loading from '$lib/Loading.svelte';
+    import { registerHref } from '$utils/signup';
 
     const inputWidth = '18rem';
 
@@ -220,9 +221,9 @@
         password = '';
     }
 
-    function registerHref(): string {
+    function signUpHref(): string {
         const authorize = `${window.location.origin}${window.location.pathname}${window.location.search}`;
-        return `/auth/v1/users/register?redirect_uri=${encodeURIComponent(authorize)}`;
+        return registerHref(authorize, email);
     }
 
     async function onRefresh() {
@@ -682,7 +683,7 @@
                     </Form>
 
                     {#if isRegOpen && !showResetRequest && !tooManyRequests && !isAtproto}
-                        <a class="reg" href={registerHref()}>
+                        <a class="reg" href={signUpHref()} data-sveltekit-reload>
                             {t.authorize.signUp}
                         </a>
                     {/if}

@@ -7,6 +7,7 @@
     import { onMount } from 'svelte';
     import { CLIENT_ID, REDIRECT_URI_SUCCESS, REDIRECT_URI_SUCCESS_ACC } from '$utils/constants.js';
     import { useParam } from '$state/param.svelte';
+    import Loading from '$lib/Loading.svelte';
 
     let err = $state('');
 
@@ -16,7 +17,7 @@
     onMount(async () => {
         let code = pCode.get();
         if (!code) {
-            console.error('no `code` given');
+            err = 'no `code` given';
             return;
         }
 
@@ -89,4 +90,6 @@
     <div class="err">
         {err}
     </div>
+{:else}
+    <Loading />
 {/if}
