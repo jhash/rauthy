@@ -12,6 +12,7 @@ on its own:
 | `feat/client-theme-register-reset` | registration and password pages use the client's theme |
 | `feat/prompt-create` | sign-up in the login window, `prompt=create` (stacked on the theme branch above) |
 | `feat/account-delete-link` | `/auth/v1/account?v=delete` opens the self-delete confirmation |
+| `fix/sign-up-flow` | sign-up from the login page loads its own form, keeps the email and the client's sign-in, callback pages show progress, "Create account" wording (stacked on `feat/prompt-create`) |
 
 `mili-next` adds the patches that change the database schema, which `mili` leaves out until
 their migrations are settled with upstream (see below):

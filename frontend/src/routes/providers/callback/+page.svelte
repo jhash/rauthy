@@ -15,6 +15,7 @@
     import type { ToSAwaitLoginResponse, ToSLatestResponse } from '$api/types/tos';
     import TosAccept from '$lib/TosAccept.svelte';
     import ContentCenter from '$lib/ContentCenter.svelte';
+    import Loading from '$lib/Loading.svelte';
 
     let t = useI18n();
     let clientMfaForce = $state(false);
@@ -26,6 +27,7 @@
     let tosAcceptCode = $state('');
     let tosForceAccept = $state(false);
     let needsValuesUpdate = $state(false);
+    let pending = $state(true);
 
     onMount(async () => {
         let pErr = useParam('error').get();
@@ -71,6 +73,7 @@
     async function handleAuthRes(
         res?: IResponse<undefined | WebauthnLoginResponse | ToSAwaitLoginResponse>,
     ) {
+        pending = res?.status === 202 || res?.status === 204;
         if (!res) {
             return;
         }
@@ -187,6 +190,8 @@
         <div class="err">
             {error}
         </div>
+    {:else if pending}
+        <Loading />
     {/if}
 </ContentCenter>
 
